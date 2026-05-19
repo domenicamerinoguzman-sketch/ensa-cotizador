@@ -4,7 +4,6 @@ import autoTable from "jspdf-autotable";
 import { PDFDocument } from "pdf-lib";
 
 const ROJO = [226, 0, 57];
-const GRIS = [245, 245, 245];
 const NEGRO = [35, 35, 35];
 
 const PRECIOS = {
@@ -82,10 +81,17 @@ const PRECIOS = {
 const fmt = (n) =>
   n == null
     ? "En desarrollo"
-    : `$${Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    : `$${Number(n).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
 
 const fechaHoy = () =>
-  new Date().toLocaleDateString("es-EC", { day: "numeric", month: "long", year: "numeric" });
+  new Date().toLocaleDateString("es-EC", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
 const loadImageBase64 = (src) =>
   new Promise((resolve) => {
@@ -187,15 +193,14 @@ export default function App() {
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
     const margin = 12;
-
     const red = ROJO;
+
     const line = () => {
       doc.setDrawColor(...red);
       doc.setLineWidth(0.6);
       doc.line(margin, 43, pageW - margin, 43);
     };
 
-    // Header
     if (logo) doc.addImage(logo, "PNG", 78, 8, 54, 28);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
@@ -219,7 +224,6 @@ export default function App() {
     doc.text(form.cliente || "Cliente", 150, 42);
     line();
 
-    // Intro
     let y = 50;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9.5);
@@ -232,54 +236,45 @@ export default function App() {
     doc.setTextColor(...NEGRO);
     doc.text(`${ciudadFinal}. –`, margin, y);
     y += 8;
+
     doc.setFont("helvetica", "normal");
     const intro = "Reciba un cordial saludo de parte de ENSA Ecuador. Nos complace presentar nuestra propuesta para la implementación de un ascensor neumático panorámico para su domicilio.";
     doc.text(doc.splitTextToSize(intro, 178), margin, y);
     y += 14;
-// BENEFICIOS MODERNOS
-doc.setFont("helvetica", "bold");
-doc.setTextColor(...red);
-doc.setFontSize(11);
-doc.text("Beneficios", margin, y);
 
-y += 8;
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...red);
+    doc.setFontSize(11);
+    doc.text("Beneficios", margin, y);
+    y += 8;
 
-const beneficios = [
-  "Diseño panorámico 360° con imagen premium.",
-  "Sin cuarto de máquinas y sin necesidad de foso.",
-  "Instalación rápida y limpia.",
-  "Bajo consumo energético y mantenimiento eficiente.",
-  "Ideal para adultos mayores y personas con movilidad reducida.",
-];
+    const beneficios = [
+      "Diseño panorámico 360° con imagen premium.",
+      "Sin cuarto de máquinas y sin necesidad de foso.",
+      "Instalación rápida y limpia.",
+      "Bajo consumo energético y mantenimiento eficiente.",
+      "Ideal para adultos mayores y personas con movilidad reducida.",
+    ];
 
-const cardW = 34;
-const cardH = 22;
-const gap = 3;
+    const cardW = 34;
+    const cardH = 22;
+    const gap = 3;
 
-beneficios.forEach((b, i) => {
-  const x = margin + i * (cardW + gap);
+    beneficios.forEach((b, i) => {
+      const x = margin + i * (cardW + gap);
+      doc.setFillColor(248, 248, 248);
+      doc.roundedRect(x, y, cardW, cardH, 2, 2, "F");
+      doc.setFillColor(...red);
+      doc.circle(x + 5, y + 5, 2.8, "F");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.7);
+      doc.setTextColor(...NEGRO);
+      const lines = doc.splitTextToSize(b, 22);
+      doc.text(lines, x + 10, y + 5);
+    });
 
-  // fondo tarjeta
-  doc.setFillColor(248, 248, 248);
-  doc.roundedRect(x, y, cardW, cardH, 2, 2, "F");
+    y += 30;
 
-  // circulo rojo
-  doc.setFillColor(...red);
-  doc.circle(x + 5, y + 5, 2.8, "F");
-
-  // texto
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.7);
-  doc.setTextColor(...NEGRO);
-
-  const lines = doc.splitTextToSize(b, 22);
-
-  doc.text(lines, x + 10, y + 5);
-});
-
-y += 30;
-
-    // Main table
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(...red);
@@ -289,24 +284,30 @@ y += 30;
     autoTable(doc, {
       startY: y,
       margin: { left: 18, right: 18 },
-tableWidth: 150,
+      tableWidth: 150,
       head: [["CONCEPTO", "CANT.", "VALOR (USD)"]],
       body: filasDesglose(),
       foot: [["SUBTOTAL:", "", fmt(calcTotal())]],
       theme: "grid",
-      styles: { font: "helvetica", fontSize: 8.2, cellPadding: 2.2, lineColor: [0, 0, 0], lineWidth: 0.25, valign: "middle" },
+      styles: {
+        font: "helvetica",
+        fontSize: 8.2,
+        cellPadding: 2.2,
+        lineColor: [0, 0, 0],
+        lineWidth: 0.25,
+        valign: "middle",
+      },
       headStyles: { fillColor: red, textColor: [255, 255, 255], fontStyle: "bold", halign: "center" },
       columnStyles: {
-  0: { cellWidth: 102 },
-  1: { cellWidth: 24, halign: "center" },
-  2: { cellWidth: 40, halign: "center" }
-},
+        0: { cellWidth: 102 },
+        1: { cellWidth: 24, halign: "center" },
+        2: { cellWidth: 40, halign: "center" },
+      },
       footStyles: { fillColor: [255, 255, 255], textColor: red, fontStyle: "bold", halign: "center" },
     });
 
     y = doc.lastAutoTable.finalY + 4;
 
-    // Additions and options side by side
     const adicionales = [
       ["Metro adicional de intermedio", fmt(ad.metroAdicional)],
       ["Costo adicional color especial estructura", fmt(parada.colorEstructura)],
@@ -365,7 +366,6 @@ tableWidth: 150,
     doc.line(margin, y, pageW - margin, y);
     y += 5;
 
-    // Two columns: notes and conditions
     const leftX = margin;
     const rightX = 108;
     const colTextW = 82;
@@ -452,7 +452,7 @@ tableWidth: 150,
     doc.text("Esta cotización tiene validez de 30 días.", pageW / 2, y, { align: "center" });
     y += 5;
     doc.text("Quedo atento para coordinar fecha de cierre y firma de contrato.", pageW / 2, y, { align: "center" });
-    y += 8;
+    y += 32;
     doc.setDrawColor(120, 120, 120);
     doc.line(70, y, 140, y);
     y += 5;
@@ -477,10 +477,7 @@ tableWidth: 150,
       const pdfFinal = await PDFDocument.create();
 
       const cotizacionPDF = await PDFDocument.load(cotizacionBytes);
-      const paginasCotizacion = await pdfFinal.copyPages(
-        cotizacionPDF,
-        cotizacionPDF.getPageIndices()
-      );
+      const paginasCotizacion = await pdfFinal.copyPages(cotizacionPDF, cotizacionPDF.getPageIndices());
       paginasCotizacion.forEach((page) => pdfFinal.addPage(page));
 
       const fichaUrl = fichaPorModelo[form.modelo];
@@ -494,11 +491,7 @@ tableWidth: 150,
 
         const fichaBytes = await response.arrayBuffer();
         const fichaPDF = await PDFDocument.load(fichaBytes);
-        const paginasFicha = await pdfFinal.copyPages(
-          fichaPDF,
-          fichaPDF.getPageIndices()
-        );
-
+        const paginasFicha = await pdfFinal.copyPages(fichaPDF, fichaPDF.getPageIndices());
         paginasFicha.forEach((page) => pdfFinal.addPage(page));
       }
 
@@ -543,7 +536,9 @@ tableWidth: 150,
             <option value="Loja">Loja</option>
             <option value="otra">Otra ciudad...</option>
           </select>
-          {form.ciudad === "otra" && <input style={{ gridColumn: "1/-1" }} value={form.ciudadOtra} onChange={(e) => set("ciudadOtra", e.target.value)} placeholder="Nombre de la ciudad" />}
+          {form.ciudad === "otra" && (
+            <input style={{ gridColumn: "1/-1" }} value={form.ciudadOtra} onChange={(e) => set("ciudadOtra", e.target.value)} placeholder="Nombre de la ciudad" />
+          )}
         </div>
       </section>
 
@@ -618,14 +613,27 @@ tableWidth: 150,
       {!esCuenca && (
         <section style={{ marginBottom: 22 }}>
           <h4>Instalación y transporte</h4>
-          <label>
-            <input type="checkbox" checked={form.instalacion} onChange={(e) => set("instalacion", e.target.checked)} /> Incluir instalación, montaje y pruebas
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <input type="checkbox" checked={form.instalacion} onChange={(e) => set("instalacion", e.target.checked)} />
+            Incluir instalación, montaje/pruebas y transporte
           </label>
+
           {form.instalacion && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 10 }}>
-              <input type="number" value={form.montaje} onChange={(e) => set("montaje", parseFloat(e.target.value) || 0)} placeholder="Montaje" />
-              <input type="number" value={form.pruebas} onChange={(e) => set("pruebas", parseFloat(e.target.value) || 0)} placeholder="Pruebas" />
-              <input type="number" value={form.transporte} onChange={(e) => set("transporte", e.target.value)} placeholder="Transporte" />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16, marginTop: 12, alignItems: "start" }}>
+              <div style={{ minWidth: 0 }}>
+                <label style={{ display: "block", marginBottom: 6, fontWeight: 600, fontSize: 13 }}>Instalación y montaje ($)</label>
+                <input type="number" value={form.montaje} onChange={(e) => set("montaje", Number(e.target.value))} style={{ boxSizing: "border-box", width: "100%", padding: 10 }} />
+              </div>
+
+              <div style={{ minWidth: 0 }}>
+                <label style={{ display: "block", marginBottom: 6, fontWeight: 600, fontSize: 13 }}>Pruebas y puesta en marcha ($)</label>
+                <input type="number" value={form.pruebas} onChange={(e) => set("pruebas", Number(e.target.value))} style={{ boxSizing: "border-box", width: "100%", padding: 10 }} />
+              </div>
+
+              <div style={{ minWidth: 0 }}>
+                <label style={{ display: "block", marginBottom: 6, fontWeight: 600, fontSize: 13 }}>Transporte a otra ciudad ($)</label>
+                <input type="number" placeholder="Ej: 650" value={form.transporte} onChange={(e) => set("transporte", e.target.value)} style={{ boxSizing: "border-box", width: "100%", padding: 10 }} />
+              </div>
             </div>
           )}
         </section>
