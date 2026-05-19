@@ -78,6 +78,12 @@ const PRECIOS = {
   },
 };
 
+const FICHAS = {
+  PVE30: "/ficha-pve30.pdf",
+  PVE37: "/ficha-pve37.pdf",
+  PVE52: "/ficha-pve52.pdf",
+};
+
 const fmt = (n) =>
   n == null
     ? "En desarrollo"
@@ -109,6 +115,31 @@ const loadImageBase64 = (src) =>
     img.src = src;
   });
 
+const nuevoAscensor = () => ({
+  id: crypto.randomUUID(),
+  etiqueta: "",
+  modelo: "PVE37",
+  paradas: "4",
+  colorEstructura: false,
+  policarbonatoCristal: false,
+  metrosAdicionales: 0,
+  falsoCabezal: 0,
+  bisagra: false,
+  llavin: 0,
+  barandillaNegra: false,
+  barandillaInox: false,
+  sillin: false,
+  cieloRaso: false,
+  moqueta: false,
+  cierraPuerta: 0,
+  rampa: false,
+  cabezalSilent: false,
+  instalacion: false,
+  montaje: 400,
+  pruebas: 120,
+  transporte: "",
+});
+
 export default function App() {
   const [form, setForm] = useState({
     numeroCot: "",
@@ -116,76 +147,78 @@ export default function App() {
     cliente: "",
     ciudad: "Cuenca",
     ciudadOtra: "",
-    modelo: "PVE37",
-    paradas: "4",
-    colorEstructura: false,
-    policarbonatoCristal: false,
-    metrosAdicionales: 0,
-    falsoCabezal: 0,
-    bisagra: false,
-    llavin: 0,
-    barandillaNegra: false,
-    barandillaInox: false,
-    sillin: false,
-    cieloRaso: false,
-    moqueta: false,
-    cierraPuerta: 0,
-    rampa: false,
-    cabezalSilent: false,
-    instalacion: false,
-    montaje: 400,
-    pruebas: 120,
-    transporte: "",
   });
 
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const [ascensores, setAscensores] = useState([nuevoAscensor()]);
 
-  const modelo = PRECIOS[form.modelo];
-  const parada = modelo.paradas[parseInt(form.paradas)];
-  const op = modelo.opcionales;
-  const ad = modelo.adicionales;
   const ciudadFinal = form.ciudad === "otra" ? form.ciudadOtra : form.ciudad;
   const esCuenca = ciudadFinal.toLowerCase() === "cuenca";
 
-  const filasDesglose = () => {
+  const setCampo = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const setAscensor = (id, k, v) =>
+    setAscensores((lista) =>
+      lista.map((a) => (a.id === id ? { ...a, [k]: v } : a))
+    );
+
+  const duplicarAscensor = (id) => {
+    const original = ascensores.find((a) => a.id === id);
+    if (!original) return;
+    setAscensores((lista) => [
+      ...lista,
+      { ...original, id: crypto.randomUUID(), etiqueta: `${original.etiqueta || "Copia"}` },
+    ]);
+  };
+
+  const eliminarAscensor = (id) => {
+    if (ascensores.length === 1) return alert("Debe existir al menos un ascensor.");
+    setAscensores((lista) => lista.filter((a) => a.id !== id));
+  };
+
+  const filasDesglose = (a, index) => {
+    const modelo = PRECIOS[a.modelo];
+    const parada = modelo.paradas[parseInt(a.paradas)];
+    const op = modelo.opcionales;
+    const ad = modelo.adicionales;
     const filas = [];
     const add = (concepto, cant, valor) => filas.push([concepto, String(cant), fmt(valor)]);
 
     add(
-      `Ascensor 1 ${modelo.nombre} Panorámico 360°, ${modelo.descripcion}, ${form.paradas} paradas. Requiere un espacio físico libre de ${modelo.espacio}. Embarque y desembarque en planta alta a cualquier orientación 0° - 90° - 180° o 270° en relación a planta baja.`,
+      `Ascensor ${index + 1} ${modelo.nombre} Panorámico 360°, ${modelo.descripcion}, ${a.paradas} paradas. Requiere un espacio físico libre de ${modelo.espacio}. Embarque y desembarque en planta alta a cualquier orientación 0° - 90° - 180° o 270° en relación a planta baja.`,
       1,
       parada.base
     );
 
-    if (form.colorEstructura) add("Color especial estructura", 1, parada.colorEstructura);
-    if (form.policarbonatoCristal) add("Policarbonato cristal", 1, parada.policarbonatoCristal);
-    if (form.metrosAdicionales > 0) add("Metro adicional de intermedio", form.metrosAdicionales, form.metrosAdicionales * ad.metroAdicional);
-    if (form.falsoCabezal > 0) add("Falso cabezal (cada 50cm)", form.falsoCabezal, form.falsoCabezal * ad.falsoCabezal);
-    if (form.bisagra) add("Bisagra izquierda", 1, ad.bisagra);
-    if (form.llavin > 0) add("Llavín de cabina", form.llavin, form.llavin * op.llavin);
-    if (form.barandillaNegra) add("Barandilla negra", 1, op.barandillaNegra);
-    if (form.barandillaInox) add("Barandilla acero inox", 1, op.barandillaInox);
-    if (form.sillin) add("Sillín rebatible", 1, op.sillin);
-    if (form.cieloRaso) add("Cielo raso dibon espejado", 1, op.cieloRaso);
-    if (form.moqueta) add("Moqueta", 1, op.moqueta);
-    if (form.cierraPuerta > 0) add("Cierra puerta automática", form.cierraPuerta, form.cierraPuerta * op.cierraPuerta);
-    if (form.rampa) add("Rampa de chapa estándar", 1, op.rampa);
-    if (form.cabezalSilent && op.cabezalSilent) add("Cabezal silent", 1, op.cabezalSilent);
+    if (a.colorEstructura) add("Color especial estructura", 1, parada.colorEstructura);
+    if (a.policarbonatoCristal) add("Policarbonato cristal", 1, parada.policarbonatoCristal);
+    if (a.metrosAdicionales > 0) add("Metro adicional de intermedio", a.metrosAdicionales, a.metrosAdicionales * ad.metroAdicional);
+    if (a.falsoCabezal > 0) add("Falso cabezal (cada 50cm)", a.falsoCabezal, a.falsoCabezal * ad.falsoCabezal);
+    if (a.bisagra) add("Bisagra izquierda", 1, ad.bisagra);
+    if (a.llavin > 0) add("Llavín de cabina", a.llavin, a.llavin * op.llavin);
+    if (a.barandillaNegra) add("Barandilla negra", 1, op.barandillaNegra);
+    if (a.barandillaInox) add("Barandilla acero inox", 1, op.barandillaInox);
+    if (a.sillin) add("Sillín rebatible", 1, op.sillin);
+    if (a.cieloRaso) add("Cielo raso dibon espejado", 1, op.cieloRaso);
+    if (a.moqueta) add("Moqueta", 1, op.moqueta);
+    if (a.cierraPuerta > 0) add("Cierra puerta automática", a.cierraPuerta, a.cierraPuerta * op.cierraPuerta);
+    if (a.rampa) add("Rampa de chapa estándar", 1, op.rampa);
+    if (a.cabezalSilent && op.cabezalSilent) add("Cabezal silent", 1, op.cabezalSilent);
 
-    if (!esCuenca && form.instalacion) {
-      add("Instalación y montaje (de 2 a 3 días)", 1, form.montaje);
-      add("Pruebas, ajustes, puesta en marcha y capacitación", 1, form.pruebas);
-      if (form.transporte) add(`Transporte equipos Cuenca - ${ciudadFinal}`, 1, parseFloat(form.transporte) || 0);
+    if (!esCuenca && a.instalacion) {
+      add("Instalación y montaje (de 2 a 3 días)", 1, a.montaje);
+      add("Pruebas, ajustes, puesta en marcha y capacitación", 1, a.pruebas);
+      if (a.transporte) add(`Transporte equipos Cuenca - ${ciudadFinal}`, 1, parseFloat(a.transporte) || 0);
     }
 
     return filas;
   };
 
-  const calcTotal = () =>
-    filasDesglose().reduce((s, fila) => {
+  const subtotalAscensor = (a, index) =>
+    filasDesglose(a, index).reduce((s, fila) => {
       const valor = fila[2].replace(/[$,]/g, "");
       return s + (parseFloat(valor) || 0);
     }, 0);
+
+  const totalGeneral = ascensores.reduce((s, a, i) => s + subtotalAscensor(a, i), 0);
 
   const generarPDF = async () => {
     const doc = new jsPDF("p", "mm", "a4");
@@ -195,12 +228,15 @@ export default function App() {
     const margin = 12;
     const red = ROJO;
 
-    const line = () => {
-      doc.setDrawColor(...red);
-      doc.setLineWidth(0.6);
-      doc.line(margin, 43, pageW - margin, 43);
+    const nuevaPaginaSiHaceFalta = (need, y) => {
+      if (y + need > pageH - 15) {
+        doc.addPage();
+        return 18;
+      }
+      return y;
     };
 
+    // Header
     if (logo) doc.addImage(logo, "PNG", 78, 8, 54, 28);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
@@ -222,7 +258,9 @@ export default function App() {
     doc.text("Cliente:", 150, 38);
     doc.setTextColor(...NEGRO);
     doc.text(form.cliente || "Cliente", 150, 42);
-    line();
+    doc.setDrawColor(...red);
+    doc.setLineWidth(0.6);
+    doc.line(margin, 43, pageW - margin, 43);
 
     let y = 50;
     doc.setFont("helvetica", "normal");
@@ -236,9 +274,8 @@ export default function App() {
     doc.setTextColor(...NEGRO);
     doc.text(`${ciudadFinal}. –`, margin, y);
     y += 8;
-
     doc.setFont("helvetica", "normal");
-    const intro = "Reciba un cordial saludo de parte de ENSA Ecuador. Nos complace presentar nuestra propuesta para la implementación de un ascensor neumático panorámico para su domicilio.";
+    const intro = "Reciba un cordial saludo de parte de ENSA Ecuador. Nos complace presentar nuestra propuesta para la implementación de ascensor(es) neumático(s) panorámico(s) para su domicilio o proyecto.";
     doc.text(doc.splitTextToSize(intro, 178), margin, y);
     y += 14;
 
@@ -247,7 +284,6 @@ export default function App() {
     doc.setFontSize(11);
     doc.text("Beneficios", margin, y);
     y += 8;
-
     const beneficios = [
       "Diseño panorámico 360° con imagen premium.",
       "Sin cuarto de máquinas y sin necesidad de foso.",
@@ -255,67 +291,73 @@ export default function App() {
       "Bajo consumo energético y mantenimiento eficiente.",
       "Ideal para adultos mayores y personas con movilidad reducida.",
     ];
-
-    const cardW = 34;
-    const cardH = 22;
-    const gap = 3;
-
     beneficios.forEach((b, i) => {
-      const x = margin + i * (cardW + gap);
+      const x = margin + i * 37;
       doc.setFillColor(248, 248, 248);
-      doc.roundedRect(x, y, cardW, cardH, 2, 2, "F");
+      doc.roundedRect(x, y, 34, 22, 2, 2, "F");
       doc.setFillColor(...red);
       doc.circle(x + 5, y + 5, 2.8, "F");
       doc.setFont("helvetica", "normal");
       doc.setFontSize(6.7);
       doc.setTextColor(...NEGRO);
-      const lines = doc.splitTextToSize(b, 22);
-      doc.text(lines, x + 10, y + 5);
+      doc.text(doc.splitTextToSize(b, 22), x + 10, y + 5);
     });
-
     y += 30;
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(...red);
     doc.text("Desglose Económico", margin, y);
-    y += 4;
+    y += 6;
+
+    ascensores.forEach((a, index) => {
+      const modelo = PRECIOS[a.modelo];
+      y = nuevaPaginaSiHaceFalta(55, y);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.2);
+      doc.setTextColor(...red);
+      doc.text(`Ascensor ${index + 1}: ${a.etiqueta || modelo.nombre}`, 18, y);
+      y += 3;
+
+      autoTable(doc, {
+        startY: y,
+        margin: { left: 18, right: 18 },
+        tableWidth: 150,
+        head: [["CONCEPTO", "CANT.", "VALOR (USD)"]],
+        body: filasDesglose(a, index),
+        foot: [["SUBTOTAL:", "", fmt(subtotalAscensor(a, index))]],
+        theme: "grid",
+        styles: { font: "helvetica", fontSize: 8.2, cellPadding: 2.2, lineColor: [0, 0, 0], lineWidth: 0.25, valign: "middle" },
+        headStyles: { fillColor: red, textColor: [255, 255, 255], fontStyle: "bold", halign: "center" },
+        columnStyles: { 0: { cellWidth: 102 }, 1: { cellWidth: 24, halign: "center" }, 2: { cellWidth: 40, halign: "center" } },
+        footStyles: { fillColor: [255, 255, 255], textColor: red, fontStyle: "bold", halign: "center" },
+      });
+      y = doc.lastAutoTable.finalY + 7;
+    });
 
     autoTable(doc, {
       startY: y,
-      margin: { left: 18, right: 18 },
-      tableWidth: 150,
-      head: [["CONCEPTO", "CANT.", "VALOR (USD)"]],
-      body: filasDesglose(),
-      foot: [["SUBTOTAL:", "", fmt(calcTotal())]],
+      margin: { left: 78 },
+      tableWidth: 72,
+      body: [["TOTAL GENERAL", fmt(totalGeneral)]],
       theme: "grid",
-      styles: {
-        font: "helvetica",
-        fontSize: 8.2,
-        cellPadding: 2.2,
-        lineColor: [0, 0, 0],
-        lineWidth: 0.25,
-        valign: "middle",
-      },
-      headStyles: { fillColor: red, textColor: [255, 255, 255], fontStyle: "bold", halign: "center" },
-      columnStyles: {
-        0: { cellWidth: 102 },
-        1: { cellWidth: 24, halign: "center" },
-        2: { cellWidth: 40, halign: "center" },
-      },
-      footStyles: { fillColor: [255, 255, 255], textColor: red, fontStyle: "bold", halign: "center" },
+      styles: { fontSize: 10, fontStyle: "bold", cellPadding: 3, lineColor: [0, 0, 0], lineWidth: 0.3, halign: "center" },
+      columnStyles: { 0: { cellWidth: 40, textColor: red }, 1: { cellWidth: 32, textColor: red } },
     });
+    y = doc.lastAutoTable.finalY + 5;
 
-    y = doc.lastAutoTable.finalY + 4;
+    const modeloReferencia = PRECIOS[ascensores[0].modelo];
+    const paradaReferencia = modeloReferencia.paradas[parseInt(ascensores[0].paradas)];
+    const ad = modeloReferencia.adicionales;
+    const op = modeloReferencia.opcionales;
 
     const adicionales = [
       ["Metro adicional de intermedio", fmt(ad.metroAdicional)],
-      ["Costo adicional color especial estructura", fmt(parada.colorEstructura)],
-      ["Costo adicional de policarbonato cristal", fmt(parada.policarbonatoCristal)],
+      ["Costo adicional color especial estructura", fmt(paradaReferencia.colorEstructura)],
+      ["Costo adicional de policarbonato cristal", fmt(paradaReferencia.policarbonatoCristal)],
       ["Falso cabezal (cada 50cm)", fmt(ad.falsoCabezal)],
       ["Bisagra izquierda", fmt(ad.bisagra)],
     ];
-
     const opcionales = [
       ["Llavín de cabina (c/u)", fmt(op.llavin)],
       ["Barandilla negra", fmt(op.barandillaNegra)],
@@ -328,50 +370,39 @@ export default function App() {
       ["Cabezal silent", fmt(op.cabezalSilent)],
     ];
 
+    y = nuevaPaginaSiHaceFalta(80, y);
     autoTable(doc, {
       startY: y,
       margin: { left: 33 },
       tableWidth: 70,
-      head: [[{ content: "Adicionales", colSpan: 2 }], ["DESCRIPCIÓN", "VALOR (USD)"]],
+      head: [[{ content: `Adicionales (${modeloReferencia.nombre})`, colSpan: 2 }], ["DESCRIPCIÓN", "VALOR (USD)"]],
       body: adicionales,
       theme: "grid",
       styles: { fontSize: 7.7, cellPadding: 1.7, lineColor: [170, 170, 170], lineWidth: 0.25 },
       headStyles: { fillColor: red, textColor: [255, 255, 255], halign: "center", fontStyle: "bold" },
       columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 20, halign: "center" } },
     });
-
     autoTable(doc, {
       startY: y,
       margin: { left: 106 },
       tableWidth: 70,
-      head: [[{ content: "Opcionales", colSpan: 2 }], ["DESCRIPCIÓN", "VALOR (USD)"]],
+      head: [[{ content: `Opcionales (${modeloReferencia.nombre})`, colSpan: 2 }], ["DESCRIPCIÓN", "VALOR (USD)"]],
       body: opcionales,
       theme: "grid",
       styles: { fontSize: 7.7, cellPadding: 1.7, lineColor: [170, 170, 170], lineWidth: 0.25 },
       headStyles: { fillColor: red, textColor: [255, 255, 255], halign: "center", fontStyle: "bold" },
       columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 20, halign: "center" } },
     });
+    y = Math.max(doc.lastAutoTable.finalY, y + 55) + 6;
 
-    y = Math.max(doc.lastAutoTable.finalY, y + 45) + 5;
+    if (y + 90 > pageH - 18) {
+      doc.addPage();
+      y = 15;
+    }
 
-    const ensureSpace = (need) => {
-      if (y + need > pageH - 18) {
-        doc.addPage();
-        y = 15;
-      }
-    };
-
-    ensureSpace(70);
     doc.setDrawColor(190, 190, 190);
     doc.line(margin, y, pageW - margin, y);
     y += 5;
-
-    const leftX = margin;
-    const rightX = 108;
-    const colTextW = 82;
-    let yLeft = y;
-    let yRight = y;
-
     const bullet = (x, yy, text, width) => {
       doc.setTextColor(...red);
       doc.text("•", x, yy);
@@ -381,6 +412,11 @@ export default function App() {
       return yy + lines.length * 4.3 + 2;
     };
 
+    const leftX = margin;
+    const rightX = 108;
+    const colTextW = 82;
+    let yLeft = y;
+    let yRight = y;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9.5);
     doc.setTextColor(...red);
@@ -399,7 +435,6 @@ export default function App() {
 
     doc.setDrawColor(170, 170, 170);
     doc.line(102, y, 102, Math.max(yLeft, yRight) + 4);
-
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9.5);
     doc.setTextColor(...red);
@@ -415,7 +450,6 @@ export default function App() {
     yRight = bullet(rightX, yRight, "50% contra entrega", colTextW);
     yRight += 2;
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(...NEGRO);
     doc.text("Garantía", rightX, yRight);
     yRight += 5;
     doc.setFont("helvetica", "normal");
@@ -437,11 +471,10 @@ export default function App() {
     yRight = bullet(rightX, yRight, "Para proceder: confirmamos la visita técnica (validación final de paradas/espacios, accesorios), emitimos la orden de pedido para reservar cupo de fabricación.", colTextW);
 
     y = Math.max(yLeft, yRight) + 8;
-    if (y > pageH - 38) {
+    if (y > pageH - 55) {
       doc.addPage();
       y = 25;
     }
-
     doc.setDrawColor(...red);
     doc.setLineWidth(0.6);
     doc.line(margin, y, pageW - margin, y);
@@ -466,29 +499,18 @@ export default function App() {
     doc.setTextColor(...NEGRO);
     doc.text("Tel: 0998623488  |  Email: info@ensaecuador.com", pageW / 2, y, { align: "center" });
 
-    const fichaPorModelo = {
-      PVE30: "/ficha-pve30.pdf",
-      PVE37: "/ficha-pve37.pdf",
-      PVE52: "/ficha-pve52.pdf",
-    };
-
     try {
       const cotizacionBytes = doc.output("arraybuffer");
       const pdfFinal = await PDFDocument.create();
-
       const cotizacionPDF = await PDFDocument.load(cotizacionBytes);
       const paginasCotizacion = await pdfFinal.copyPages(cotizacionPDF, cotizacionPDF.getPageIndices());
       paginasCotizacion.forEach((page) => pdfFinal.addPage(page));
 
-      const fichaUrl = fichaPorModelo[form.modelo];
-
-      if (fichaUrl) {
+      const modelosUnicos = [...new Set(ascensores.map((a) => a.modelo))];
+      for (const modeloKey of modelosUnicos) {
+        const fichaUrl = FICHAS[modeloKey];
         const response = await fetch(fichaUrl);
-
-        if (!response.ok) {
-          throw new Error(`No se encontró la ficha técnica: ${fichaUrl}`);
-        }
-
+        if (!response.ok) throw new Error(`No se encontró la ficha técnica: ${fichaUrl}`);
         const fichaBytes = await response.arrayBuffer();
         const fichaPDF = await PDFDocument.load(fichaBytes);
         const paginasFicha = await pdfFinal.copyPages(fichaPDF, fichaPDF.getPageIndices());
@@ -498,37 +520,30 @@ export default function App() {
       const pdfBytes = await pdfFinal.save();
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
-
       const link = document.createElement("a");
       link.href = url;
       link.download = `COT-2026-${form.numeroCot || "XXXX"}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
       URL.revokeObjectURL(url);
     } catch (error) {
-      alert(
-        "No se pudo unir la ficha técnica. Revisa que los archivos estén en public con estos nombres: ficha-pve30.pdf, ficha-pve37.pdf y ficha-pve52.pdf.\n\nDetalle: " +
-          error.message
-      );
+      alert("No se pudo unir la ficha técnica. Revisa que los archivos estén en public: ficha-pve30.pdf, ficha-pve37.pdf y ficha-pve52.pdf.\n\nDetalle: " + error.message);
     }
   };
 
-  const total = calcTotal();
-
   return (
-    <div style={{ padding: "1.5rem 1rem", maxWidth: 760, margin: "0 auto", fontFamily: "Arial, sans-serif" }}>
+    <div style={{ padding: "1.5rem 1rem", maxWidth: 900, margin: "0 auto", fontFamily: "Arial, sans-serif" }}>
       <h2>Generador de Cotizaciones</h2>
       <p>ENSA Ecuador — Ascensores Neumáticos</p>
 
       <section style={{ marginBottom: 22 }}>
         <h4>Datos del cliente</h4>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <input value={form.numeroCot} onChange={(e) => set("numeroCot", e.target.value)} placeholder="N° Cotización: ej. 1063" />
-          <input value={form.fecha} onChange={(e) => set("fecha", e.target.value)} placeholder="Fecha" />
-          <input style={{ gridColumn: "1/-1" }} value={form.cliente} onChange={(e) => set("cliente", e.target.value)} placeholder="Cliente / Proyecto" />
-          <select style={{ gridColumn: "1/-1" }} value={form.ciudad} onChange={(e) => set("ciudad", e.target.value)}>
+          <input value={form.numeroCot} onChange={(e) => setCampo("numeroCot", e.target.value)} placeholder="N° Cotización: ej. 1063" />
+          <input value={form.fecha} onChange={(e) => setCampo("fecha", e.target.value)} placeholder="Fecha" />
+          <input style={{ gridColumn: "1/-1" }} value={form.cliente} onChange={(e) => setCampo("cliente", e.target.value)} placeholder="Cliente / Proyecto" />
+          <select style={{ gridColumn: "1/-1" }} value={form.ciudad} onChange={(e) => setCampo("ciudad", e.target.value)}>
             <option value="Cuenca">Cuenca</option>
             <option value="Quito">Quito</option>
             <option value="Guayaquil">Guayaquil</option>
@@ -536,113 +551,101 @@ export default function App() {
             <option value="Loja">Loja</option>
             <option value="otra">Otra ciudad...</option>
           </select>
-          {form.ciudad === "otra" && (
-            <input style={{ gridColumn: "1/-1" }} value={form.ciudadOtra} onChange={(e) => set("ciudadOtra", e.target.value)} placeholder="Nombre de la ciudad" />
-          )}
+          {form.ciudad === "otra" && <input style={{ gridColumn: "1/-1" }} value={form.ciudadOtra} onChange={(e) => setCampo("ciudadOtra", e.target.value)} placeholder="Nombre de la ciudad" />}
         </div>
       </section>
 
-      <section style={{ marginBottom: 22 }}>
-        <h4>Modelo del ascensor</h4>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-          {Object.entries(PRECIOS).map(([k, v]) => (
-            <button key={k} onClick={() => set("modelo", k)} style={{ padding: 10, border: form.modelo === k ? "2px solid #e20039" : "1px solid #ccc" }}>
-              <b>{v.nombre}</b>
-              <br />
-              <small>{v.descripcion}</small>
-            </button>
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-          {[2, 3, 4, 5].map((p) => (
-            <button key={p} onClick={() => set("paradas", String(p))} style={{ flex: 1, padding: 8, border: form.paradas === String(p) ? "2px solid #e20039" : "1px solid #ccc" }}>
-              {p} paradas
-            </button>
-          ))}
-        </div>
-        <p>Precio base: {fmt(parada.base)}</p>
-      </section>
-
-      <section style={{ marginBottom: 22 }}>
-        <h4>Adicionales y opcionales</h4>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          {[
-            ["colorEstructura", "Color especial estructura", parada.colorEstructura],
-            ["policarbonatoCristal", "Policarbonato cristal", parada.policarbonatoCristal],
-            ["bisagra", "Bisagra izquierda", ad.bisagra],
-            ["barandillaNegra", "Barandilla negra", op.barandillaNegra],
-            ["barandillaInox", "Barandilla acero inox", op.barandillaInox],
-            ["sillin", "Sillín rebatible", op.sillin],
-            ["cieloRaso", "Cielo raso dibon espejado", op.cieloRaso],
-            ["moqueta", "Moqueta", op.moqueta],
-            ["rampa", "Rampa de chapa estándar", op.rampa],
-            ["cabezalSilent", "Cabezal silent", op.cabezalSilent],
-          ].map(([key, label, precio]) => (
-            <label key={key} style={{ border: "1px solid #ddd", padding: 8, opacity: precio == null ? 0.5 : 1 }}>
-              <input type="checkbox" checked={form[key]} disabled={precio == null} onChange={(e) => set(key, e.target.checked)} /> {label} — {fmt(precio)}
-            </label>
-          ))}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
-          <div>
-            <label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Metros adicionales</label>
-            <input style={{ width: "100%", padding: 8 }} type="number" min="0" value={form.metrosAdicionales} onChange={(e) => set("metrosAdicionales", parseInt(e.target.value) || 0)} />
-            <small>Precio unitario: {fmt(ad.metroAdicional)}</small>
-          </div>
-
-          <div>
-            <label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Falso cabezal (cada 50cm)</label>
-            <input style={{ width: "100%", padding: 8 }} type="number" min="0" value={form.falsoCabezal} onChange={(e) => set("falsoCabezal", parseInt(e.target.value) || 0)} />
-            <small>Precio unitario: {fmt(ad.falsoCabezal)}</small>
-          </div>
-
-          <div>
-            <label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Llavín de cabina</label>
-            <input style={{ width: "100%", padding: 8 }} type="number" min="0" value={form.llavin} onChange={(e) => set("llavin", parseInt(e.target.value) || 0)} />
-            <small>Precio unitario: {fmt(op.llavin)}</small>
-          </div>
-
-          <div>
-            <label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Cierra puerta automático</label>
-            <input style={{ width: "100%", padding: 8 }} type="number" min="0" value={form.cierraPuerta} onChange={(e) => set("cierraPuerta", parseInt(e.target.value) || 0)} />
-            <small>Precio unitario: {fmt(op.cierraPuerta)}</small>
-          </div>
-        </div>
-      </section>
-
-      {!esCuenca && (
-        <section style={{ marginBottom: 22 }}>
-          <h4>Instalación y transporte</h4>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-            <input type="checkbox" checked={form.instalacion} onChange={(e) => set("instalacion", e.target.checked)} />
-            Incluir instalación, montaje/pruebas y transporte
-          </label>
-
-          {form.instalacion && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16, marginTop: 12, alignItems: "start" }}>
-              <div style={{ minWidth: 0 }}>
-                <label style={{ display: "block", marginBottom: 6, fontWeight: 600, fontSize: 13 }}>Instalación y montaje ($)</label>
-                <input type="number" value={form.montaje} onChange={(e) => set("montaje", Number(e.target.value))} style={{ boxSizing: "border-box", width: "100%", padding: 10 }} />
-              </div>
-
-              <div style={{ minWidth: 0 }}>
-                <label style={{ display: "block", marginBottom: 6, fontWeight: 600, fontSize: 13 }}>Pruebas y puesta en marcha ($)</label>
-                <input type="number" value={form.pruebas} onChange={(e) => set("pruebas", Number(e.target.value))} style={{ boxSizing: "border-box", width: "100%", padding: 10 }} />
-              </div>
-
-              <div style={{ minWidth: 0 }}>
-                <label style={{ display: "block", marginBottom: 6, fontWeight: 600, fontSize: 13 }}>Transporte a otra ciudad ($)</label>
-                <input type="number" placeholder="Ej: 650" value={form.transporte} onChange={(e) => set("transporte", e.target.value)} style={{ boxSizing: "border-box", width: "100%", padding: 10 }} />
+      {ascensores.map((a, index) => {
+        const modelo = PRECIOS[a.modelo];
+        const parada = modelo.paradas[parseInt(a.paradas)];
+        const ad = modelo.adicionales;
+        const op = modelo.opcionales;
+        return (
+          <section key={a.id} style={{ marginBottom: 22, padding: 16, border: "1px solid #ddd", borderRadius: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+              <h3 style={{ margin: 0 }}>Ascensor {index + 1}</h3>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button type="button" onClick={() => duplicarAscensor(a.id)}>Duplicar</button>
+                <button type="button" onClick={() => eliminarAscensor(a.id)}>Eliminar</button>
               </div>
             </div>
-          )}
-        </section>
-      )}
+
+            <input style={{ width: "100%", marginTop: 10, padding: 8 }} value={a.etiqueta} onChange={(e) => setAscensor(a.id, "etiqueta", e.target.value)} placeholder="Etiqueta opcional: Torre A, Ascensor social, Local 1..." />
+
+            <h4>Modelo del ascensor</h4>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+              {Object.entries(PRECIOS).map(([k, v]) => (
+                <button key={k} onClick={() => setAscensor(a.id, "modelo", k)} style={{ padding: 10, border: a.modelo === k ? "2px solid #e20039" : "1px solid #ccc" }}>
+                  <b>{v.nombre}</b><br /><small>{v.descripcion}</small>
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              {[2, 3, 4, 5].map((p) => (
+                <button key={p} onClick={() => setAscensor(a.id, "paradas", String(p))} style={{ flex: 1, padding: 8, border: a.paradas === String(p) ? "2px solid #e20039" : "1px solid #ccc" }}>
+                  {p} paradas
+                </button>
+              ))}
+            </div>
+            <p>Precio base: {fmt(parada.base)}</p>
+
+            <h4>Adicionales y opcionales</h4>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {[
+                ["colorEstructura", "Color especial estructura", parada.colorEstructura],
+                ["policarbonatoCristal", "Policarbonato cristal", parada.policarbonatoCristal],
+                ["bisagra", "Bisagra izquierda", ad.bisagra],
+                ["barandillaNegra", "Barandilla negra", op.barandillaNegra],
+                ["barandillaInox", "Barandilla acero inox", op.barandillaInox],
+                ["sillin", "Sillín rebatible", op.sillin],
+                ["cieloRaso", "Cielo raso dibon espejado", op.cieloRaso],
+                ["moqueta", "Moqueta", op.moqueta],
+                ["rampa", "Rampa de chapa estándar", op.rampa],
+                ["cabezalSilent", "Cabezal silent", op.cabezalSilent],
+              ].map(([key, label, precio]) => (
+                <label key={key} style={{ border: "1px solid #ddd", padding: 8, opacity: precio == null ? 0.5 : 1 }}>
+                  <input type="checkbox" checked={a[key]} disabled={precio == null} onChange={(e) => setAscensor(a.id, key, e.target.checked)} /> {label} — {fmt(precio)}
+                </label>
+              ))}
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
+              <div><label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Metros adicionales</label><input style={{ width: "100%", padding: 8 }} type="number" min="0" value={a.metrosAdicionales} onChange={(e) => setAscensor(a.id, "metrosAdicionales", parseInt(e.target.value) || 0)} /><small>Precio unitario: {fmt(ad.metroAdicional)}</small></div>
+              <div><label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Falso cabezal (cada 50cm)</label><input style={{ width: "100%", padding: 8 }} type="number" min="0" value={a.falsoCabezal} onChange={(e) => setAscensor(a.id, "falsoCabezal", parseInt(e.target.value) || 0)} /><small>Precio unitario: {fmt(ad.falsoCabezal)}</small></div>
+              <div><label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Llavín de cabina</label><input style={{ width: "100%", padding: 8 }} type="number" min="0" value={a.llavin} onChange={(e) => setAscensor(a.id, "llavin", parseInt(e.target.value) || 0)} /><small>Precio unitario: {fmt(op.llavin)}</small></div>
+              <div><label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Cierra puerta automático</label><input style={{ width: "100%", padding: 8 }} type="number" min="0" value={a.cierraPuerta} onChange={(e) => setAscensor(a.id, "cierraPuerta", parseInt(e.target.value) || 0)} /><small>Precio unitario: {fmt(op.cierraPuerta)}</small></div>
+            </div>
+
+            {!esCuenca && (
+              <div style={{ marginTop: 18 }}>
+                <h4>Instalación y transporte</h4>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <input type="checkbox" checked={a.instalacion} onChange={(e) => setAscensor(a.id, "instalacion", e.target.checked)} />
+                  Incluir instalación, montaje/pruebas y transporte
+                </label>
+                {a.instalacion && (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16, alignItems: "start" }}>
+                    <div style={{ minWidth: 0 }}><label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Instalación y montaje ($)</label><input style={{ width: "100%", boxSizing: "border-box", padding: 10 }} type="number" value={a.montaje} onChange={(e) => setAscensor(a.id, "montaje", Number(e.target.value))} /></div>
+                    <div style={{ minWidth: 0 }}><label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Pruebas y puesta en marcha ($)</label><input style={{ width: "100%", boxSizing: "border-box", padding: 10 }} type="number" value={a.pruebas} onChange={(e) => setAscensor(a.id, "pruebas", Number(e.target.value))} /></div>
+                    <div style={{ minWidth: 0 }}><label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Transporte a otra ciudad ($)</label><input style={{ width: "100%", boxSizing: "border-box", padding: 10 }} type="number" placeholder="Ej: 650" value={a.transporte} onChange={(e) => setAscensor(a.id, "transporte", e.target.value)} /></div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ marginTop: 16, fontWeight: 700 }}>Subtotal ascensor {index + 1}: {fmt(subtotalAscensor(a, index))}</div>
+          </section>
+        );
+      })}
+
+      <button onClick={() => setAscensores((lista) => [...lista, nuevoAscensor()])} style={{ padding: "10px 18px", marginBottom: 18 }}>
+        + Agregar otro ascensor
+      </button>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 18, border: "1px solid #ddd" }}>
         <div>
-          <div>Subtotal estimado</div>
-          <h2>{fmt(total)}</h2>
+          <div>Total general estimado</div>
+          <h2>{fmt(totalGeneral)}</h2>
           <small>No incluye IVA</small>
         </div>
         <button onClick={generarPDF} style={{ padding: "12px 24px", background: "#e20039", color: "white", border: 0, cursor: "pointer" }}>
