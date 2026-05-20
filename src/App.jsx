@@ -595,7 +595,6 @@ export default function App() {
       "Adecuaciones y trabajos de obra civil a cargo del cliente.",
       "Se puede personalizar color de estructura, policarbonato y accesorios adicionales previo al cierre del acuerdo comercial.",
       "Requiere acometida de 220V. más tierra. El consumo eléctrico es mínimo.",
-      "Para un modelo de 4 paradas, normalmente el peso total instalado suele estar aproximadamente entre 550 y 750 kg.",
     ].forEach((t) => (yLeft = bullet(leftX, yLeft, t, colTextW)));
 
     doc.setDrawColor(170, 170, 170);
