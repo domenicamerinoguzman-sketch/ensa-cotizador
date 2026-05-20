@@ -141,6 +141,7 @@ export default function App() {
     numeroCot: "",
     fecha: fechaHoy(),
     cliente: "",
+    atencion: "",
     ciudad: "Cuenca",
     ciudadOtra: "",
     instalacionGeneral: false,
@@ -296,11 +297,25 @@ export default function App() {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9.5);
     doc.setTextColor(...NEGRO);
+
+    const nombreEstimado = (form.atencion?.trim() || form.cliente || "Cliente").toUpperCase();
     doc.text("Estimado", margin, y);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...red);
-    doc.text((form.cliente || "Cliente").toUpperCase(), margin + 16, y);
+    doc.text(nombreEstimado, margin + 16, y);
+
+    if (form.atencion?.trim()) {
+      y += 6;
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...red);
+      doc.text("Cliente:", margin, y);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...NEGRO);
+      doc.text(form.cliente || "Cliente", margin + 18, y);
+    }
+
     y += 6;
+    doc.setFont("helvetica", "bold");
     doc.setTextColor(...NEGRO);
     doc.text(`${ciudadFinal}. –`, margin, y);
     y += 8;
@@ -595,6 +610,7 @@ export default function App() {
       "Adecuaciones y trabajos de obra civil a cargo del cliente.",
       "Se puede personalizar color de estructura, policarbonato y accesorios adicionales previo al cierre del acuerdo comercial.",
       "Requiere acometida de 220V. más tierra. El consumo eléctrico es mínimo.",
+      "Para un modelo de 4 paradas, normalmente el peso total instalado suele estar aproximadamente entre 550 y 750 kg.",
     ].forEach((t) => (yLeft = bullet(leftX, yLeft, t, colTextW)));
 
     doc.setDrawColor(170, 170, 170);
@@ -719,6 +735,12 @@ export default function App() {
             value={form.cliente}
             onChange={(e) => setCampo("cliente", e.target.value)}
             placeholder="Cliente / Proyecto"
+          />
+          <input
+            style={{ gridColumn: "1/-1" }}
+            value={form.atencion}
+            onChange={(e) => setCampo("atencion", e.target.value)}
+            placeholder="Atención a (opcional): Ej. Ing. Juan Pérez"
           />
           <select style={{ gridColumn: "1/-1" }} value={form.ciudad} onChange={(e) => setCampo("ciudad", e.target.value)}>
             <option value="Cuenca">Cuenca</option>
