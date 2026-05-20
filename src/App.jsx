@@ -228,14 +228,21 @@ export default function App() {
   };
 
   const filasInstalacionGeneral = () => {
-    if (esCuenca || !form.instalacionGeneral) return [];
+    if (esCuenca) {
+      return [["Costo de instalación", "1", fmt(0)]];
+    }
+
+    if (!form.instalacionGeneral) return [];
+
     const filas = [
       ["Instalación y montaje (de 2 a 3 días)", "1", fmt(form.montajeGeneral || 0)],
       ["Pruebas, ajustes, puesta en marcha y capacitación", "1", fmt(form.pruebasGeneral || 0)],
     ];
+
     if (form.transporteGeneral) {
       filas.push([`Transporte equipos Cuenca - ${ciudadFinal}`, "1", fmt(parseFloat(form.transporteGeneral) || 0)]);
     }
+
     return filas;
   };
 
@@ -1009,31 +1016,68 @@ export default function App() {
         + Agregar otro ascensor
       </button>
 
-      {!esCuenca && (
-        <section style={{ marginBottom: 24, padding: 18, border: "1px solid #ddd", borderRadius: 10 }}>
-          <h3 style={{ marginTop: 0 }}>Instalación y transporte general</h3>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-            <input type="checkbox" checked={form.instalacionGeneral || false} onChange={(e) => setCampo("instalacionGeneral", e.target.checked)} />
-            Incluir instalación, pruebas y transporte
-          </label>
-          {form.instalacionGeneral && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
-              <div>
-                <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Instalación y montaje ($)</label>
-                <input type="number" value={form.montajeGeneral || 400} onChange={(e) => setCampo("montajeGeneral", Number(e.target.value))} style={{ width: "100%", padding: 10, boxSizing: "border-box" }} />
+      <section style={{ marginBottom: 24, padding: 18, border: "1px solid #ddd", borderRadius: 10 }}>
+        <h3 style={{ marginTop: 0 }}>Instalación y transporte general</h3>
+
+        {esCuenca ? (
+          <div
+            style={{
+              padding: 14,
+              background: "#f5f5f5",
+              borderRadius: 8,
+              fontWeight: 700,
+              color: "#e20039",
+              border: "1px solid #eee",
+            }}
+          >
+            Costo de instalación: $0
+          </div>
+        ) : (
+          <>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <input
+                type="checkbox"
+                checked={form.instalacionGeneral || false}
+                onChange={(e) => setCampo("instalacionGeneral", e.target.checked)}
+              />
+              Incluir instalación, pruebas y transporte
+            </label>
+
+            {form.instalacionGeneral && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+                <div>
+                  <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Instalación y montaje ($)</label>
+                  <input
+                    type="number"
+                    value={form.montajeGeneral || 400}
+                    onChange={(e) => setCampo("montajeGeneral", Number(e.target.value))}
+                    style={{ width: "100%", padding: 10, boxSizing: "border-box" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Pruebas y puesta en marcha ($)</label>
+                  <input
+                    type="number"
+                    value={form.pruebasGeneral || 120}
+                    onChange={(e) => setCampo("pruebasGeneral", Number(e.target.value))}
+                    style={{ width: "100%", padding: 10, boxSizing: "border-box" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Transporte a otra ciudad ($)</label>
+                  <input
+                    type="number"
+                    placeholder="Ej: 650"
+                    value={form.transporteGeneral || ""}
+                    onChange={(e) => setCampo("transporteGeneral", e.target.value)}
+                    style={{ width: "100%", padding: 10, boxSizing: "border-box" }}
+                  />
+                </div>
               </div>
-              <div>
-                <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Pruebas y puesta en marcha ($)</label>
-                <input type="number" value={form.pruebasGeneral || 120} onChange={(e) => setCampo("pruebasGeneral", Number(e.target.value))} style={{ width: "100%", padding: 10, boxSizing: "border-box" }} />
-              </div>
-              <div>
-                <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Transporte a otra ciudad ($)</label>
-                <input type="number" placeholder="Ej: 650" value={form.transporteGeneral || ""} onChange={(e) => setCampo("transporteGeneral", e.target.value)} style={{ width: "100%", padding: 10, boxSizing: "border-box" }} />
-              </div>
-            </div>
-          )}
-        </section>
-      )}
+            )}
+          </>
+        )}
+      </section>
 
       <div style={{ display: "flex", justifyContent: ascensores.length === 1 ? "space-between" : "flex-end", alignItems: "center", padding: 18, border: "1px solid #ddd", gap: 16 }}>
         {ascensores.length === 1 && (
