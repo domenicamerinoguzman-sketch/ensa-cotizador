@@ -134,10 +134,6 @@ const nuevoAscensor = () => ({
   cierraPuerta: 0,
   rampa: false,
   cabezalSilent: false,
-  instalacion: false,
-  montaje: 400,
-  pruebas: 120,
-  transporte: "",
 });
 
 export default function App() {
@@ -147,6 +143,10 @@ export default function App() {
     cliente: "",
     ciudad: "Cuenca",
     ciudadOtra: "",
+    instalacionGeneral: false,
+    montajeGeneral: 400,
+    pruebasGeneral: 120,
+    transporteGeneral: "",
   });
 
   const [ascensores, setAscensores] = useState([nuevoAscensor()]);
@@ -203,10 +203,23 @@ export default function App() {
     if (a.rampa) add("Rampa de chapa estándar", 1, op.rampa);
     if (a.cabezalSilent && op.cabezalSilent) add("Cabezal silent", 1, op.cabezalSilent);
 
-    if (!esCuenca && a.instalacion) {
-      add("Instalación y montaje (de 2 a 3 días)", 1, a.montaje);
-      add("Pruebas, ajustes, puesta en marcha y capacitación", 1, a.pruebas);
-      if (a.transporte) add(`Transporte equipos Cuenca - ${ciudadFinal}`, 1, parseFloat(a.transporte) || 0);
+    return filas;
+  };
+
+  const filasInstalacionGeneral = () => {
+    if (esCuenca || !form.instalacionGeneral) return [];
+
+    const filas = [
+      ["Instalación y montaje (de 2 a 3 días)", "1", fmt(form.montajeGeneral || 0)],
+      ["Pruebas, ajustes, puesta en marcha y capacitación", "1", fmt(form.pruebasGeneral || 0)],
+    ];
+
+    if (form.transporteGeneral) {
+      filas.push([
+        `Transporte equipos Cuenca - ${ciudadFinal}`,
+        "1",
+        fmt(parseFloat(form.transporteGeneral) || 0),
+      ]);
     }
 
     return filas;
@@ -218,7 +231,11 @@ export default function App() {
       return s + (parseFloat(valor) || 0);
     }, 0);
 
-  const totalGeneral = ascensores.reduce((s, a, i) => s + subtotalAscensor(a, i), 0);
+  const subtotalInstalacionGeneral = () =>
+    filasInstalacionGeneral().reduce((s, fila) => {
+      const valor = fila[2].replace(/[$,]/g, "");
+      return s + (parseFloat(valor) || 0);
+    }, 0);
 
   const generarPDF = async () => {
     const doc = new jsPDF("p", "mm", "a4");
@@ -236,7 +253,6 @@ export default function App() {
       return y;
     };
 
-    // Header
     if (logo) doc.addImage(logo, "PNG", 78, 8, 54, 28);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
@@ -275,7 +291,8 @@ export default function App() {
     doc.text(`${ciudadFinal}. –`, margin, y);
     y += 8;
     doc.setFont("helvetica", "normal");
-    const intro = "Reciba un cordial saludo de parte de ENSA Ecuador. Nos complace presentar nuestra propuesta para la implementación de ascensor(es) neumático(s) panorámico(s) para su domicilio o proyecto.";
+    const intro =
+      "Reciba un cordial saludo de parte de ENSA Ecuador. Nos complace presentar nuestra propuesta para la implementación de ascensor(es) neumático(s) panorámico(s) para su domicilio o proyecto.";
     doc.text(doc.splitTextToSize(intro, 178), margin, y);
     y += 14;
 
@@ -327,24 +344,80 @@ export default function App() {
         body: filasDesglose(a, index),
         foot: [["SUBTOTAL:", "", fmt(subtotalAscensor(a, index))]],
         theme: "grid",
-        styles: { font: "helvetica", fontSize: 8.2, cellPadding: 2.2, lineColor: [0, 0, 0], lineWidth: 0.25, valign: "middle" },
-        headStyles: { fillColor: red, textColor: [255, 255, 255], fontStyle: "bold", halign: "center" },
-        columnStyles: { 0: { cellWidth: 102 }, 1: { cellWidth: 24, halign: "center" }, 2: { cellWidth: 40, halign: "center" } },
-        footStyles: { fillColor: [255, 255, 255], textColor: red, fontStyle: "bold", halign: "center" },
+        styles: {
+          font: "helvetica",
+          fontSize: 8.2,
+          cellPadding: 2.2,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.25,
+          valign: "middle",
+        },
+        headStyles: {
+          fillColor: red,
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          halign: "center",
+        },
+        columnStyles: {
+          0: { cellWidth: 102 },
+          1: { cellWidth: 24, halign: "center" },
+          2: { cellWidth: 40, halign: "center" },
+        },
+        footStyles: {
+          fillColor: [255, 255, 255],
+          textColor: red,
+          fontStyle: "bold",
+          halign: "center",
+        },
       });
       y = doc.lastAutoTable.finalY + 7;
     });
 
-    autoTable(doc, {
-      startY: y,
-      margin: { left: 78 },
-      tableWidth: 72,
-      body: [["TOTAL GENERAL", fmt(totalGeneral)]],
-      theme: "grid",
-      styles: { fontSize: 10, fontStyle: "bold", cellPadding: 3, lineColor: [0, 0, 0], lineWidth: 0.3, halign: "center" },
-      columnStyles: { 0: { cellWidth: 40, textColor: red }, 1: { cellWidth: 32, textColor: red } },
-    });
-    y = doc.lastAutoTable.finalY + 5;
+    const filasInstalacion = filasInstalacionGeneral();
+    if (filasInstalacion.length > 0) {
+      y = nuevaPaginaSiHaceFalta(45, y);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.2);
+      doc.setTextColor(...red);
+      doc.text("Instalación y transporte general", 18, y);
+      y += 3;
+
+      autoTable(doc, {
+        startY: y,
+        margin: { left: 18, right: 18 },
+        tableWidth: 150,
+        head: [["CONCEPTO", "CANT.", "VALOR (USD)"]],
+        body: filasInstalacion,
+        foot: [["SUBTOTAL INSTALACIÓN:", "", fmt(subtotalInstalacionGeneral())]],
+        theme: "grid",
+        styles: {
+          font: "helvetica",
+          fontSize: 8.2,
+          cellPadding: 2.2,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.25,
+          valign: "middle",
+        },
+        headStyles: {
+          fillColor: red,
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          halign: "center",
+        },
+        columnStyles: {
+          0: { cellWidth: 102 },
+          1: { cellWidth: 24, halign: "center" },
+          2: { cellWidth: 40, halign: "center" },
+        },
+        footStyles: {
+          fillColor: [255, 255, 255],
+          textColor: red,
+          fontStyle: "bold",
+          halign: "center",
+        },
+      });
+      y = doc.lastAutoTable.finalY + 7;
+    }
 
     const modeloReferencia = PRECIOS[ascensores[0].modelo];
     const paradaReferencia = modeloReferencia.paradas[parseInt(ascensores[0].paradas)];
@@ -468,7 +541,12 @@ export default function App() {
     doc.text("Cierre", rightX, yRight);
     yRight += 5;
     doc.setFont("helvetica", "normal");
-    yRight = bullet(rightX, yRight, "Para proceder: confirmamos la visita técnica (validación final de paradas/espacios, accesorios), emitimos la orden de pedido para reservar cupo de fabricación.", colTextW);
+    yRight = bullet(
+      rightX,
+      yRight,
+      "Para proceder: confirmamos la visita técnica (validación final de paradas/espacios, accesorios), emitimos la orden de pedido para reservar cupo de fabricación.",
+      colTextW
+    );
 
     y = Math.max(yLeft, yRight) + 8;
     if (y > pageH - 55) {
@@ -528,7 +606,10 @@ export default function App() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (error) {
-      alert("No se pudo unir la ficha técnica. Revisa que los archivos estén en public: ficha-pve30.pdf, ficha-pve37.pdf y ficha-pve52.pdf.\n\nDetalle: " + error.message);
+      alert(
+        "No se pudo unir la ficha técnica. Revisa que los archivos estén en public: ficha-pve30.pdf, ficha-pve37.pdf y ficha-pve52.pdf.\n\nDetalle: " +
+          error.message
+      );
     }
   };
 
@@ -542,7 +623,12 @@ export default function App() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <input value={form.numeroCot} onChange={(e) => setCampo("numeroCot", e.target.value)} placeholder="N° Cotización: ej. 1063" />
           <input value={form.fecha} onChange={(e) => setCampo("fecha", e.target.value)} placeholder="Fecha" />
-          <input style={{ gridColumn: "1/-1" }} value={form.cliente} onChange={(e) => setCampo("cliente", e.target.value)} placeholder="Cliente / Proyecto" />
+          <input
+            style={{ gridColumn: "1/-1" }}
+            value={form.cliente}
+            onChange={(e) => setCampo("cliente", e.target.value)}
+            placeholder="Cliente / Proyecto"
+          />
           <select style={{ gridColumn: "1/-1" }} value={form.ciudad} onChange={(e) => setCampo("ciudad", e.target.value)}>
             <option value="Cuenca">Cuenca</option>
             <option value="Quito">Quito</option>
@@ -551,7 +637,14 @@ export default function App() {
             <option value="Loja">Loja</option>
             <option value="otra">Otra ciudad...</option>
           </select>
-          {form.ciudad === "otra" && <input style={{ gridColumn: "1/-1" }} value={form.ciudadOtra} onChange={(e) => setCampo("ciudadOtra", e.target.value)} placeholder="Nombre de la ciudad" />}
+          {form.ciudad === "otra" && (
+            <input
+              style={{ gridColumn: "1/-1" }}
+              value={form.ciudadOtra}
+              onChange={(e) => setCampo("ciudadOtra", e.target.value)}
+              placeholder="Nombre de la ciudad"
+            />
+          )}
         </div>
       </section>
 
@@ -565,24 +658,43 @@ export default function App() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
               <h3 style={{ margin: 0 }}>Ascensor {index + 1}</h3>
               <div style={{ display: "flex", gap: 8 }}>
-                <button type="button" onClick={() => duplicarAscensor(a.id)}>Duplicar</button>
-                <button type="button" onClick={() => eliminarAscensor(a.id)}>Eliminar</button>
+                <button type="button" onClick={() => duplicarAscensor(a.id)}>
+                  Duplicar
+                </button>
+                <button type="button" onClick={() => eliminarAscensor(a.id)}>
+                  Eliminar
+                </button>
               </div>
             </div>
 
-            <input style={{ width: "100%", marginTop: 10, padding: 8 }} value={a.etiqueta} onChange={(e) => setAscensor(a.id, "etiqueta", e.target.value)} placeholder="Etiqueta opcional: Torre A, Ascensor social, Local 1..." />
+            <input
+              style={{ width: "100%", marginTop: 10, padding: 8 }}
+              value={a.etiqueta}
+              onChange={(e) => setAscensor(a.id, "etiqueta", e.target.value)}
+              placeholder="Etiqueta opcional: Torre A, Ascensor social, Local 1..."
+            />
 
             <h4>Modelo del ascensor</h4>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
               {Object.entries(PRECIOS).map(([k, v]) => (
-                <button key={k} onClick={() => setAscensor(a.id, "modelo", k)} style={{ padding: 10, border: a.modelo === k ? "2px solid #e20039" : "1px solid #ccc" }}>
-                  <b>{v.nombre}</b><br /><small>{v.descripcion}</small>
+                <button
+                  key={k}
+                  onClick={() => setAscensor(a.id, "modelo", k)}
+                  style={{ padding: 10, border: a.modelo === k ? "2px solid #e20039" : "1px solid #ccc" }}
+                >
+                  <b>{v.nombre}</b>
+                  <br />
+                  <small>{v.descripcion}</small>
                 </button>
               ))}
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               {[2, 3, 4, 5].map((p) => (
-                <button key={p} onClick={() => setAscensor(a.id, "paradas", String(p))} style={{ flex: 1, padding: 8, border: a.paradas === String(p) ? "2px solid #e20039" : "1px solid #ccc" }}>
+                <button
+                  key={p}
+                  onClick={() => setAscensor(a.id, "paradas", String(p))}
+                  style={{ flex: 1, padding: 8, border: a.paradas === String(p) ? "2px solid #e20039" : "1px solid #ccc" }}
+                >
                   {p} paradas
                 </button>
               ))}
@@ -610,28 +722,51 @@ export default function App() {
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
-              <div><label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Metros adicionales</label><input style={{ width: "100%", padding: 8 }} type="number" min="0" value={a.metrosAdicionales} onChange={(e) => setAscensor(a.id, "metrosAdicionales", parseInt(e.target.value) || 0)} /><small>Precio unitario: {fmt(ad.metroAdicional)}</small></div>
-              <div><label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Falso cabezal (cada 50cm)</label><input style={{ width: "100%", padding: 8 }} type="number" min="0" value={a.falsoCabezal} onChange={(e) => setAscensor(a.id, "falsoCabezal", parseInt(e.target.value) || 0)} /><small>Precio unitario: {fmt(ad.falsoCabezal)}</small></div>
-              <div><label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Llavín de cabina</label><input style={{ width: "100%", padding: 8 }} type="number" min="0" value={a.llavin} onChange={(e) => setAscensor(a.id, "llavin", parseInt(e.target.value) || 0)} /><small>Precio unitario: {fmt(op.llavin)}</small></div>
-              <div><label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Cierra puerta automático</label><input style={{ width: "100%", padding: 8 }} type="number" min="0" value={a.cierraPuerta} onChange={(e) => setAscensor(a.id, "cierraPuerta", parseInt(e.target.value) || 0)} /><small>Precio unitario: {fmt(op.cierraPuerta)}</small></div>
-            </div>
-
-            {!esCuenca && (
-              <div style={{ marginTop: 18 }}>
-                <h4>Instalación y transporte</h4>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                  <input type="checkbox" checked={a.instalacion} onChange={(e) => setAscensor(a.id, "instalacion", e.target.checked)} />
-                  Incluir instalación, montaje/pruebas y transporte
-                </label>
-                {a.instalacion && (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16, alignItems: "start" }}>
-                    <div style={{ minWidth: 0 }}><label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Instalación y montaje ($)</label><input style={{ width: "100%", boxSizing: "border-box", padding: 10 }} type="number" value={a.montaje} onChange={(e) => setAscensor(a.id, "montaje", Number(e.target.value))} /></div>
-                    <div style={{ minWidth: 0 }}><label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Pruebas y puesta en marcha ($)</label><input style={{ width: "100%", boxSizing: "border-box", padding: 10 }} type="number" value={a.pruebas} onChange={(e) => setAscensor(a.id, "pruebas", Number(e.target.value))} /></div>
-                    <div style={{ minWidth: 0 }}><label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Transporte a otra ciudad ($)</label><input style={{ width: "100%", boxSizing: "border-box", padding: 10 }} type="number" placeholder="Ej: 650" value={a.transporte} onChange={(e) => setAscensor(a.id, "transporte", e.target.value)} /></div>
-                  </div>
-                )}
+              <div>
+                <label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Metros adicionales</label>
+                <input
+                  style={{ width: "100%", padding: 8 }}
+                  type="number"
+                  min="0"
+                  value={a.metrosAdicionales}
+                  onChange={(e) => setAscensor(a.id, "metrosAdicionales", parseInt(e.target.value) || 0)}
+                />
+                <small>Precio unitario: {fmt(ad.metroAdicional)}</small>
               </div>
-            )}
+              <div>
+                <label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Falso cabezal (cada 50cm)</label>
+                <input
+                  style={{ width: "100%", padding: 8 }}
+                  type="number"
+                  min="0"
+                  value={a.falsoCabezal}
+                  onChange={(e) => setAscensor(a.id, "falsoCabezal", parseInt(e.target.value) || 0)}
+                />
+                <small>Precio unitario: {fmt(ad.falsoCabezal)}</small>
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Llavín de cabina</label>
+                <input
+                  style={{ width: "100%", padding: 8 }}
+                  type="number"
+                  min="0"
+                  value={a.llavin}
+                  onChange={(e) => setAscensor(a.id, "llavin", parseInt(e.target.value) || 0)}
+                />
+                <small>Precio unitario: {fmt(op.llavin)}</small>
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Cierra puerta automático</label>
+                <input
+                  style={{ width: "100%", padding: 8 }}
+                  type="number"
+                  min="0"
+                  value={a.cierraPuerta}
+                  onChange={(e) => setAscensor(a.id, "cierraPuerta", parseInt(e.target.value) || 0)}
+                />
+                <small>Precio unitario: {fmt(op.cierraPuerta)}</small>
+              </div>
+            </div>
 
             <div style={{ marginTop: 16, fontWeight: 700 }}>Subtotal ascensor {index + 1}: {fmt(subtotalAscensor(a, index))}</div>
           </section>
@@ -642,13 +777,61 @@ export default function App() {
         + Agregar otro ascensor
       </button>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 18, border: "1px solid #ddd" }}>
-        <div>
-          <div>Total general estimado</div>
-          <h2>{fmt(totalGeneral)}</h2>
-          <small>No incluye IVA</small>
-        </div>
-        <button onClick={generarPDF} style={{ padding: "12px 24px", background: "#e20039", color: "white", border: 0, cursor: "pointer" }}>
+      {!esCuenca && (
+        <section style={{ marginBottom: 24, padding: 18, border: "1px solid #ddd", borderRadius: 10 }}>
+          <h3 style={{ marginTop: 0 }}>Instalación y transporte general</h3>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <input
+              type="checkbox"
+              checked={form.instalacionGeneral || false}
+              onChange={(e) => setCampo("instalacionGeneral", e.target.checked)}
+            />
+            Incluir instalación, pruebas y transporte
+          </label>
+
+          {form.instalacionGeneral && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+              <div>
+                <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Instalación y montaje ($)</label>
+                <input
+                  type="number"
+                  value={form.montajeGeneral || 400}
+                  onChange={(e) => setCampo("montajeGeneral", Number(e.target.value))}
+                  style={{ width: "100%", padding: 10, boxSizing: "border-box" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Pruebas y puesta en marcha ($)</label>
+                <input
+                  type="number"
+                  value={form.pruebasGeneral || 120}
+                  onChange={(e) => setCampo("pruebasGeneral", Number(e.target.value))}
+                  style={{ width: "100%", padding: 10, boxSizing: "border-box" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Transporte a otra ciudad ($)</label>
+                <input
+                  type="number"
+                  placeholder="Ej: 650"
+                  value={form.transporteGeneral || ""}
+                  onChange={(e) => setCampo("transporteGeneral", e.target.value)}
+                  style={{ width: "100%", padding: 10, boxSizing: "border-box" }}
+                />
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", padding: 18, border: "1px solid #ddd" }}>
+        <button
+          onClick={generarPDF}
+          style={{ padding: "12px 24px", background: "#e20039", color: "white", border: 0, cursor: "pointer", borderRadius: 8, fontWeight: 700 }}
+        >
           Generar PDF
         </button>
       </div>
