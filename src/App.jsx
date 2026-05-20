@@ -229,7 +229,10 @@ export default function App() {
 
   const filasInstalacionGeneral = () => {
     if (esCuenca) {
-      return [["Costo de instalación", "1", fmt(0)]];
+      return [
+        ["Costo de instalación", "1", fmt(0)],
+        ["Costo de transporte", "1", fmt(0)],
+      ];
     }
 
     if (!form.instalacionGeneral) return [];
@@ -240,7 +243,11 @@ export default function App() {
     ];
 
     if (form.transporteGeneral) {
-      filas.push([`Transporte equipos Cuenca - ${ciudadFinal}`, "1", fmt(parseFloat(form.transporteGeneral) || 0)]);
+      filas.push([
+        `Transporte equipos Cuenca - ${ciudadFinal}`,
+        "1",
+        fmt(parseFloat(form.transporteGeneral) || 0),
+      ]);
     }
 
     return filas;
@@ -308,7 +315,8 @@ export default function App() {
     doc.text("Estimad@", margin, y);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...red);
-    doc.text(nombreEstimado, margin + 16, y);
+    y +=7;
+    doc.text(nombreEstimado, margin, y);
 
     if (form.atencion?.trim()) {
       y += 6;
@@ -1030,7 +1038,8 @@ export default function App() {
               border: "1px solid #eee",
             }}
           >
-            Costo de instalación: $0
+            <div>Costo de instalación: $0</div>
+            <div>Costo de transporte: $0</div>
           </div>
         ) : (
           <>
