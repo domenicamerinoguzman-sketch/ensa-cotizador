@@ -134,6 +134,8 @@ const nuevoAscensor = () => ({
   cierraPuerta: 0,
   rampa: false,
   cabezalSilent: false,
+  adecuaciones: [],
+  fotos: [],
 });
 
 export default function App() {
@@ -175,21 +177,17 @@ export default function App() {
     setAscensores((lista) => lista.filter((a) => a.id !== id));
   };
 
-  const descripcionAscensor = (a, index) => {
+  const descripcionAscensor = (a) => {
     const modelo = PRECIOS[a.modelo];
-
     if (a.modelo === "PVE30") {
       return `${modelo.nombre} Panorámico 360°, 1 pasajero - 150Kg., ${a.paradas} paradas. Requiere un espacio físico libre de 0.8 mts. Embarque y desembarque alineados a planta baja, no permite cambios de orientación.`;
     }
-
     if (a.modelo === "PVE37") {
       return `${modelo.nombre} Panorámico 360°, 2 pasajeros - 200Kg., ${a.paradas} paradas. Requiere un espacio físico libre de 1 metro. Embarque y desembarque en planta alta a cualquier orientación 0° - 90° - 180° o 270° en relación a planta baja.`;
     }
-
     if (a.modelo === "PVE52") {
       return `${modelo.nombre} Panorámico 360°, 3 pasajeros - 250Kg., ${a.paradas} paradas. Requiere un espacio físico libre de 1.50 metros. Embarque y desembarque en planta alta orientado a 0° o 180° en relación a planta baja.`;
     }
-
     return `${modelo.nombre} Panorámico 360°, ${modelo.descripcion}, ${a.paradas} paradas.`;
   };
 
@@ -202,7 +200,6 @@ export default function App() {
     const add = (concepto, cant, valor) => filas.push([concepto, String(cant), fmt(valor)]);
 
     add(descripcionAscensor(a, index), 1, parada.base);
-
     if (a.colorEstructura) add("Color especial estructura", 1, parada.colorEstructura);
     if (a.policarbonatoCristal) add("Policarbonato cristal", 1, parada.policarbonatoCristal);
     if (a.metrosAdicionales > 0) add("Metro adicional de intermedio", a.metrosAdicionales, a.metrosAdicionales * ad.metroAdicional);
@@ -218,25 +215,27 @@ export default function App() {
     if (a.rampa) add("Rampa de chapa estándar", 1, op.rampa);
     if (a.cabezalSilent && op.cabezalSilent) add("Cabezal silent", 1, op.cabezalSilent);
 
+    // ADECUACIONES PERSONALIZADAS
+    if (a.adecuaciones && a.adecuaciones.length > 0) {
+      a.adecuaciones.forEach((adec) => {
+        if (adec.descripcion.trim()) {
+          add(adec.descripcion, 1, parseFloat(adec.precio) || 0);
+        }
+      });
+    }
+
     return filas;
   };
 
   const filasInstalacionGeneral = () => {
     if (esCuenca || !form.instalacionGeneral) return [];
-
     const filas = [
       ["Instalación y montaje (de 2 a 3 días)", "1", fmt(form.montajeGeneral || 0)],
       ["Pruebas, ajustes, puesta en marcha y capacitación", "1", fmt(form.pruebasGeneral || 0)],
     ];
-
     if (form.transporteGeneral) {
-      filas.push([
-        `Transporte equipos Cuenca - ${ciudadFinal}`,
-        "1",
-        fmt(parseFloat(form.transporteGeneral) || 0),
-      ]);
+      filas.push([`Transporte equipos Cuenca - ${ciudadFinal}`, "1", fmt(parseFloat(form.transporteGeneral) || 0)]);
     }
-
     return filas;
   };
 
@@ -299,7 +298,7 @@ export default function App() {
     doc.setTextColor(...NEGRO);
 
     const nombreEstimado = (form.atencion?.trim() || form.cliente || "Cliente").toUpperCase();
-    doc.text("Estimado", margin, y);
+    doc.text("Estimad@", margin, y);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...red);
     doc.text(nombreEstimado, margin + 16, y);
@@ -307,7 +306,7 @@ export default function App() {
     if (form.atencion?.trim()) {
       y += 6;
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(...red);
+      doc.setTextColor(...NEGRO);
       doc.text("Cliente:", margin, y);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(...NEGRO);
@@ -353,25 +352,21 @@ export default function App() {
     const dibujarConceptoConModeloNegrita = (data, modeloNombre) => {
       const textoCompleto = String(data.cell.raw || "");
       if (!textoCompleto.startsWith(modeloNombre)) return;
-
       const x = data.cell.x + 2.2;
       let yTexto = data.cell.y + 5.2;
       const anchoMaximo = data.cell.width - 4.4;
       const altoLinea = 4.1;
       const restoTexto = textoCompleto.replace(modeloNombre, "").trimStart();
-
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8.2);
       doc.setTextColor(...NEGRO);
       doc.text(modeloNombre, x, yTexto);
-
       doc.setFont("helvetica", "normal");
       const anchoModelo = doc.getTextWidth(modeloNombre + " ");
       const palabras = restoTexto.split(" ");
       const lineas = [];
       let lineaActual = "";
       let limiteActual = anchoMaximo - anchoModelo;
-
       palabras.forEach((palabra) => {
         const prueba = lineaActual ? `${lineaActual} ${palabra}` : palabra;
         if (doc.getTextWidth(prueba) <= limiteActual) {
@@ -383,7 +378,6 @@ export default function App() {
         }
       });
       if (lineaActual) lineas.push(lineaActual);
-
       if (lineas.length > 0) {
         doc.text(lineas[0], x + anchoModelo, yTexto);
         for (let i = 1; i < lineas.length; i++) {
@@ -453,6 +447,59 @@ export default function App() {
         },
       });
       y = doc.lastAutoTable.finalY + 7;
+
+      // FOTOS DEL ASCENSOR
+      if (a.fotos && a.fotos.length > 0) {
+        y = nuevaPaginaSiHaceFalta(60, y);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(...red);
+        doc.text(
+          `Fotografías - Ascensor ${index + 1}${a.etiqueta ? ": " + a.etiqueta : ""}`,
+          18,
+          y
+        );
+        y += 5;
+        const cols = 2;
+        const gap = 5;
+        const startX = 18;
+        const fotoW = (170 - gap) / cols;
+        let col = 0;
+        let alturaFilaActual = 0;
+        for (const foto of a.fotos) {
+          // calcular alto proporcional desde el dataUrl
+          let fotoH = 60;
+          try {
+            const tmpImg = new Image();
+            tmpImg.src = foto.dataUrl;
+            if (tmpImg.naturalWidth && tmpImg.naturalHeight) {
+              fotoH = (tmpImg.naturalHeight / tmpImg.naturalWidth) * fotoW;
+            }
+          } catch (e) {}
+          fotoH = Math.min(fotoH, 120);
+          if (col === 0) {
+            alturaFilaActual = fotoH;
+            y = nuevaPaginaSiHaceFalta(fotoH + 10, y);
+          } else {
+            alturaFilaActual = Math.max(alturaFilaActual, fotoH);
+          }
+          const x = startX + col * (fotoW + gap);
+          try {
+            doc.addImage(foto.dataUrl, "JPEG", x, y, fotoW, fotoH);
+            doc.setDrawColor(180, 180, 180);
+            doc.setLineWidth(0.3);
+            doc.rect(x, y, fotoW, fotoH);
+          } catch (e) {}
+          col++;
+          if (col >= cols) {
+            col = 0;
+            y += alturaFilaActual + 5;
+            alturaFilaActual = 0;
+          }
+        }
+        if (col > 0) y += alturaFilaActual + 5;
+        y += 4;
+      }
     });
 
     const filasInstalacion = filasInstalacionGeneral();
@@ -463,7 +510,6 @@ export default function App() {
       doc.setTextColor(...red);
       doc.text("Instalación y transporte general", 18, y);
       y += 3;
-
       autoTable(doc, {
         startY: y,
         margin: { left: 18, right: 18 },
@@ -610,8 +656,7 @@ export default function App() {
       "Adecuaciones y trabajos de obra civil a cargo del cliente.",
       "Se puede personalizar color de estructura, policarbonato y accesorios adicionales previo al cierre del acuerdo comercial.",
       "Requiere acometida de 220V. más tierra. El consumo eléctrico es mínimo.",
-      "Para un modelo de 4 paradas, normalmente el peso total instalado suele estar aproximadamente entre 550 y 750 kg.",
-    ].forEach((t) => (yLeft = bullet(leftX, yLeft, t, colTextW)));
+      ].forEach((t) => (yLeft = bullet(leftX, yLeft, t, colTextW)));
 
     doc.setDrawColor(170, 170, 170);
     doc.line(102, y, 102, Math.max(yLeft, yRight) + 4);
@@ -730,18 +775,8 @@ export default function App() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <input value={form.numeroCot} onChange={(e) => setCampo("numeroCot", e.target.value)} placeholder="N° Cotización: ej. 1063" />
           <input value={form.fecha} onChange={(e) => setCampo("fecha", e.target.value)} placeholder="Fecha" />
-          <input
-            style={{ gridColumn: "1/-1" }}
-            value={form.cliente}
-            onChange={(e) => setCampo("cliente", e.target.value)}
-            placeholder="Cliente / Proyecto"
-          />
-          <input
-            style={{ gridColumn: "1/-1" }}
-            value={form.atencion}
-            onChange={(e) => setCampo("atencion", e.target.value)}
-            placeholder="Atención a (opcional): Ej. Ing. Juan Pérez"
-          />
+          <input style={{ gridColumn: "1/-1" }} value={form.cliente} onChange={(e) => setCampo("cliente", e.target.value)} placeholder="Cliente" />
+          <input style={{ gridColumn: "1/-1" }} value={form.atencion} onChange={(e) => setCampo("atencion", e.target.value)} placeholder="Atención a (opcional): Ej. Ing. Juan Pérez" />
           <select style={{ gridColumn: "1/-1" }} value={form.ciudad} onChange={(e) => setCampo("ciudad", e.target.value)}>
             <option value="Cuenca">Cuenca</option>
             <option value="Quito">Quito</option>
@@ -751,12 +786,7 @@ export default function App() {
             <option value="otra">Otra ciudad...</option>
           </select>
           {form.ciudad === "otra" && (
-            <input
-              style={{ gridColumn: "1/-1" }}
-              value={form.ciudadOtra}
-              onChange={(e) => setCampo("ciudadOtra", e.target.value)}
-              placeholder="Nombre de la ciudad"
-            />
+            <input style={{ gridColumn: "1/-1" }} value={form.ciudadOtra} onChange={(e) => setCampo("ciudadOtra", e.target.value)} placeholder="Nombre de la ciudad" />
           )}
         </div>
       </section>
@@ -771,12 +801,8 @@ export default function App() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
               <h3 style={{ margin: 0 }}>Ascensor {index + 1}</h3>
               <div style={{ display: "flex", gap: 8 }}>
-                <button type="button" onClick={() => duplicarAscensor(a.id)}>
-                  Duplicar
-                </button>
-                <button type="button" onClick={() => eliminarAscensor(a.id)}>
-                  Eliminar
-                </button>
+                <button type="button" onClick={() => duplicarAscensor(a.id)}>Duplicar</button>
+                <button type="button" onClick={() => eliminarAscensor(a.id)}>Eliminar</button>
               </div>
             </div>
 
@@ -790,24 +816,16 @@ export default function App() {
             <h4>Modelo del ascensor</h4>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
               {Object.entries(PRECIOS).map(([k, v]) => (
-                <button
-                  key={k}
-                  onClick={() => setAscensor(a.id, "modelo", k)}
-                  style={{ padding: 10, border: a.modelo === k ? "2px solid #e20039" : "1px solid #ccc" }}
-                >
-                  <b>{v.nombre}</b>
-                  <br />
-                  <small>{v.descripcion}</small>
+                <button key={k} onClick={() => setAscensor(a.id, "modelo", k)}
+                  style={{ padding: 10, border: a.modelo === k ? "2px solid #e20039" : "1px solid #ccc" }}>
+                  <b>{v.nombre}</b><br /><small>{v.descripcion}</small>
                 </button>
               ))}
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               {[2, 3, 4, 5].map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setAscensor(a.id, "paradas", String(p))}
-                  style={{ flex: 1, padding: 8, border: a.paradas === String(p) ? "2px solid #e20039" : "1px solid #ccc" }}
-                >
+                <button key={p} onClick={() => setAscensor(a.id, "paradas", String(p))}
+                  style={{ flex: 1, padding: 8, border: a.paradas === String(p) ? "2px solid #e20039" : "1px solid #ccc" }}>
                   {p} paradas
                 </button>
               ))}
@@ -837,47 +855,148 @@ export default function App() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
               <div>
                 <label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Metros adicionales</label>
-                <input
-                  style={{ width: "100%", padding: 8 }}
-                  type="number"
-                  min="0"
-                  value={a.metrosAdicionales}
-                  onChange={(e) => setAscensor(a.id, "metrosAdicionales", parseInt(e.target.value) || 0)}
-                />
+                <input style={{ width: "100%", padding: 8 }} type="number" min="0" value={a.metrosAdicionales}
+                  onChange={(e) => setAscensor(a.id, "metrosAdicionales", parseInt(e.target.value) || 0)} />
                 <small>Precio unitario: {fmt(ad.metroAdicional)}</small>
               </div>
               <div>
                 <label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Falso cabezal (cada 50cm)</label>
-                <input
-                  style={{ width: "100%", padding: 8 }}
-                  type="number"
-                  min="0"
-                  value={a.falsoCabezal}
-                  onChange={(e) => setAscensor(a.id, "falsoCabezal", parseInt(e.target.value) || 0)}
-                />
+                <input style={{ width: "100%", padding: 8 }} type="number" min="0" value={a.falsoCabezal}
+                  onChange={(e) => setAscensor(a.id, "falsoCabezal", parseInt(e.target.value) || 0)} />
                 <small>Precio unitario: {fmt(ad.falsoCabezal)}</small>
               </div>
               <div>
                 <label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Llavín de cabina</label>
-                <input
-                  style={{ width: "100%", padding: 8 }}
-                  type="number"
-                  min="0"
-                  value={a.llavin}
-                  onChange={(e) => setAscensor(a.id, "llavin", parseInt(e.target.value) || 0)}
-                />
+                <input style={{ width: "100%", padding: 8 }} type="number" min="0" value={a.llavin}
+                  onChange={(e) => setAscensor(a.id, "llavin", parseInt(e.target.value) || 0)} />
                 <small>Precio unitario: {fmt(op.llavin)}</small>
               </div>
               <div>
                 <label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Cierra puerta automático</label>
-                <input
-                  style={{ width: "100%", padding: 8 }}
-                  type="number"
-                  min="0"
-                  value={a.cierraPuerta}
-                  onChange={(e) => setAscensor(a.id, "cierraPuerta", parseInt(e.target.value) || 0)}
-                />
+                <input style={{ width: "100%", padding: 8 }} type="number" min="0" value={a.cierraPuerta}
+                  onChange={(e) => setAscensor(a.id, "cierraPuerta", parseInt(e.target.value) || 0)} />
                 <small>Precio unitario: {fmt(op.cierraPuerta)}</small>
+              </div>
+            </div>
+
+            {/* ADECUACIONES PERSONALIZADAS */}
+            <div style={{ marginTop: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <h4 style={{ margin: 0 }}>Adecuaciones personalizadas</h4>
+                <button
+                  type="button"
+                  style={{ fontSize: 12, padding: "4px 10px" }}
+                  onClick={() =>
+                    setAscensor(a.id, "adecuaciones", [
+                      ...(a.adecuaciones || []),
+                      { id: crypto.randomUUID(), descripcion: "", precio: "" },
+                    ])
+                  }
+                >
+                  + Agregar línea
+                </button>
+              </div>
+              {(a.adecuaciones || []).length === 0 && (
+                <p style={{ fontSize: 12, color: "#999", margin: 0 }}>
+                  Sin adecuaciones. Haz clic en "+ Agregar línea" si necesitas incluir trabajos extras.
+                </p>
+              )}
+              {(a.adecuaciones || []).map((adec, i) => (
+                <div key={adec.id} style={{ display: "grid", gridTemplateColumns: "1fr 120px 36px", gap: 6, marginBottom: 6 }}>
+                  <input
+                    placeholder="Descripción de la adecuación"
+                    value={adec.descripcion}
+                    onChange={(e) => {
+                      const nuevas = [...a.adecuaciones];
+                      nuevas[i] = { ...nuevas[i], descripcion: e.target.value };
+                      setAscensor(a.id, "adecuaciones", nuevas);
+                    }}
+                  />
+                  <input
+                    type="number"
+                    placeholder="Precio $"
+                    value={adec.precio}
+                    onChange={(e) => {
+                      const nuevas = [...a.adecuaciones];
+                      nuevas[i] = { ...nuevas[i], precio: e.target.value };
+                      setAscensor(a.id, "adecuaciones", nuevas);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    style={{ padding: "0 8px", color: "#e20039", fontWeight: "bold", fontSize: 16, border: "1px solid #ddd", borderRadius: 4, cursor: "pointer" }}
+                    onClick={() => {
+                      const nuevas = a.adecuaciones.filter((_, idx) => idx !== i);
+                      setAscensor(a.id, "adecuaciones", nuevas);
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* FOTOGRAFÍAS */}
+            <div style={{ marginTop: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <h4 style={{ margin: 0 }}>Fotografías</h4>
+                <label style={{ fontSize: 12, padding: "4px 10px", border: "1px solid #ccc", borderRadius: 6, cursor: "pointer" }}>
+                  + Agregar fotos
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    style={{ display: "none" }}
+                    onChange={(e) => {
+                      const archivos = Array.from(e.target.files);
+                      archivos.forEach((archivo) => {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          setAscensor(a.id, "fotos", [
+                            ...(a.fotos || []),
+                            { id: crypto.randomUUID(), nombre: archivo.name, dataUrl: ev.target.result },
+                          ]);
+                        };
+                        reader.readAsDataURL(archivo);
+                      });
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+              {(a.fotos || []).length === 0 && (
+                <p style={{ fontSize: 12, color: "#999", margin: 0 }}>
+                  Sin fotos. Opcional: adjunta imágenes del espacio o del proyecto.
+                </p>
+              )}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+                {(a.fotos || []).map((foto, i) => (
+                  <div key={foto.id} style={{ position: "relative", width: 80 }}>
+                    <img
+                      src={foto.dataUrl}
+                      alt={foto.nombre}
+                      style={{ width: 80, height: 65, objectFit: "cover", borderRadius: 6, border: "1px solid #ddd" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nuevas = a.fotos.filter((_, idx) => idx !== i);
+                        setAscensor(a.id, "fotos", nuevas);
+                      }}
+                      style={{
+                        position: "absolute", top: 2, right: 2,
+                        background: "rgba(226,0,57,0.85)", color: "white",
+                        border: "none", borderRadius: "50%", width: 18, height: 18,
+                        fontSize: 11, cursor: "pointer", lineHeight: "18px", padding: 0, textAlign: "center",
+                      }}
+                    >
+                      ×
+                    </button>
+                    <div style={{ fontSize: 9, color: "#666", marginTop: 2, wordBreak: "break-all" }}>
+                      {foto.nombre.substring(0, 18)}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -893,77 +1012,38 @@ export default function App() {
       {!esCuenca && (
         <section style={{ marginBottom: 24, padding: 18, border: "1px solid #ddd", borderRadius: 10 }}>
           <h3 style={{ marginTop: 0 }}>Instalación y transporte general</h3>
-
           <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-            <input
-              type="checkbox"
-              checked={form.instalacionGeneral || false}
-              onChange={(e) => setCampo("instalacionGeneral", e.target.checked)}
-            />
+            <input type="checkbox" checked={form.instalacionGeneral || false} onChange={(e) => setCampo("instalacionGeneral", e.target.checked)} />
             Incluir instalación, pruebas y transporte
           </label>
-
           {form.instalacionGeneral && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
               <div>
                 <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Instalación y montaje ($)</label>
-                <input
-                  type="number"
-                  value={form.montajeGeneral || 400}
-                  onChange={(e) => setCampo("montajeGeneral", Number(e.target.value))}
-                  style={{ width: "100%", padding: 10, boxSizing: "border-box" }}
-                />
+                <input type="number" value={form.montajeGeneral || 400} onChange={(e) => setCampo("montajeGeneral", Number(e.target.value))} style={{ width: "100%", padding: 10, boxSizing: "border-box" }} />
               </div>
-
               <div>
                 <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Pruebas y puesta en marcha ($)</label>
-                <input
-                  type="number"
-                  value={form.pruebasGeneral || 120}
-                  onChange={(e) => setCampo("pruebasGeneral", Number(e.target.value))}
-                  style={{ width: "100%", padding: 10, boxSizing: "border-box" }}
-                />
+                <input type="number" value={form.pruebasGeneral || 120} onChange={(e) => setCampo("pruebasGeneral", Number(e.target.value))} style={{ width: "100%", padding: 10, boxSizing: "border-box" }} />
               </div>
-
               <div>
                 <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Transporte a otra ciudad ($)</label>
-                <input
-                  type="number"
-                  placeholder="Ej: 650"
-                  value={form.transporteGeneral || ""}
-                  onChange={(e) => setCampo("transporteGeneral", e.target.value)}
-                  style={{ width: "100%", padding: 10, boxSizing: "border-box" }}
-                />
+                <input type="number" placeholder="Ej: 650" value={form.transporteGeneral || ""} onChange={(e) => setCampo("transporteGeneral", e.target.value)} style={{ width: "100%", padding: 10, boxSizing: "border-box" }} />
               </div>
             </div>
           )}
         </section>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: ascensores.length === 1 ? "space-between" : "flex-end",
-          alignItems: "center",
-          padding: 18,
-          border: "1px solid #ddd",
-          gap: 16,
-        }}
-      >
+      <div style={{ display: "flex", justifyContent: ascensores.length === 1 ? "space-between" : "flex-end", alignItems: "center", padding: 18, border: "1px solid #ddd", gap: 16 }}>
         {ascensores.length === 1 && (
           <div>
             <div>Total general estimado</div>
-            <h2 style={{ margin: "6px 0" }}>
-              {fmt(subtotalAscensor(ascensores[0], 0) + subtotalInstalacionGeneral())}
-            </h2>
+            <h2 style={{ margin: "6px 0" }}>{fmt(subtotalAscensor(ascensores[0], 0) + subtotalInstalacionGeneral())}</h2>
             <small>No incluye IVA</small>
           </div>
         )}
-
-        <button
-          onClick={generarPDF}
-          style={{ padding: "12px 24px", background: "#e20039", color: "white", border: 0, cursor: "pointer", borderRadius: 8, fontWeight: 700 }}
-        >
+        <button onClick={generarPDF} style={{ padding: "12px 24px", background: "#e20039", color: "white", border: 0, cursor: "pointer", borderRadius: 8, fontWeight: 700 }}>
           Generar PDF
         </button>
       </div>
