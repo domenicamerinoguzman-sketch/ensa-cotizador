@@ -9,8 +9,8 @@ const NEGRO = [35, 35, 35];
 const PRECIOS = {
   PVE30: {
     nombre: "PVE30-750",
-    descripcion: "1 pasajero - 75Kg.",
-    espacio: "1 metro",
+    descripcion: "1 pasajero - 150Kg.",
+    espacio: "0.8 mts",
     paradas: {
       2: { base: 14976, colorEstructura: 160, policarbonatoCristal: 660 },
       3: { base: 17680, colorEstructura: 240, policarbonatoCristal: 990 },
@@ -55,8 +55,8 @@ const PRECIOS = {
   },
   PVE52: {
     nombre: "PVE52-1316",
-    descripcion: "3 pasajeros - 300Kg.",
-    espacio: "1.30 metros",
+    descripcion: "3 pasajeros - 250Kg.",
+    espacio: "1.50 metros",
     paradas: {
       2: { base: 27994, colorEstructura: 300, policarbonatoCristal: 740 },
       3: { base: 31753, colorEstructura: 450, policarbonatoCristal: 1110 },
@@ -174,6 +174,24 @@ export default function App() {
     setAscensores((lista) => lista.filter((a) => a.id !== id));
   };
 
+  const descripcionAscensor = (a, index) => {
+    const modelo = PRECIOS[a.modelo];
+
+    if (a.modelo === "PVE30") {
+      return `${modelo.nombre} Panorámico 360°, 1 pasajero - 150Kg., ${a.paradas} paradas. Requiere un espacio físico libre de 0.8 mts. Embarque y desembarque alineados a planta baja, no permite cambios de orientación.`;
+    }
+
+    if (a.modelo === "PVE37") {
+      return `${modelo.nombre} Panorámico 360°, 2 pasajeros - 200Kg., ${a.paradas} paradas. Requiere un espacio físico libre de 1 metro. Embarque y desembarque en planta alta a cualquier orientación 0° - 90° - 180° o 270° en relación a planta baja.`;
+    }
+
+    if (a.modelo === "PVE52") {
+      return `${modelo.nombre} Panorámico 360°, 3 pasajeros - 250Kg., ${a.paradas} paradas. Requiere un espacio físico libre de 1.50 metros. Embarque y desembarque en planta alta orientado a 0° o 180° en relación a planta baja.`;
+    }
+
+    return `${modelo.nombre} Panorámico 360°, ${modelo.descripcion}, ${a.paradas} paradas.`;
+  };
+
   const filasDesglose = (a, index) => {
     const modelo = PRECIOS[a.modelo];
     const parada = modelo.paradas[parseInt(a.paradas)];
@@ -182,11 +200,7 @@ export default function App() {
     const filas = [];
     const add = (concepto, cant, valor) => filas.push([concepto, String(cant), fmt(valor)]);
 
-    add(
-      `Ascensor ${index + 1} ${modelo.nombre} Panorámico 360°, ${modelo.descripcion}, ${a.paradas} paradas. Requiere un espacio físico libre de ${modelo.espacio}. Embarque y desembarque en planta alta a cualquier orientación 0° - 90° - 180° o 270° en relación a planta baja.`,
-      1,
-      parada.base
-    );
+    add(descripcionAscensor(a, index), 1, parada.base);
 
     if (a.colorEstructura) add("Color especial estructura", 1, parada.colorEstructura);
     if (a.policarbonatoCristal) add("Policarbonato cristal", 1, parada.policarbonatoCristal);
@@ -321,6 +335,49 @@ export default function App() {
     });
     y += 30;
 
+    const dibujarConceptoConModeloNegrita = (data, modeloNombre) => {
+      const textoCompleto = String(data.cell.raw || "");
+      if (!textoCompleto.startsWith(modeloNombre)) return;
+
+      const x = data.cell.x + 2.2;
+      let yTexto = data.cell.y + 5.2;
+      const anchoMaximo = data.cell.width - 4.4;
+      const altoLinea = 4.1;
+      const restoTexto = textoCompleto.replace(modeloNombre, "").trimStart();
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.2);
+      doc.setTextColor(...NEGRO);
+      doc.text(modeloNombre, x, yTexto);
+
+      doc.setFont("helvetica", "normal");
+      const anchoModelo = doc.getTextWidth(modeloNombre + " ");
+      const palabras = restoTexto.split(" ");
+      const lineas = [];
+      let lineaActual = "";
+      let limiteActual = anchoMaximo - anchoModelo;
+
+      palabras.forEach((palabra) => {
+        const prueba = lineaActual ? `${lineaActual} ${palabra}` : palabra;
+        if (doc.getTextWidth(prueba) <= limiteActual) {
+          lineaActual = prueba;
+        } else {
+          if (lineaActual) lineas.push(lineaActual);
+          lineaActual = palabra;
+          limiteActual = anchoMaximo;
+        }
+      });
+      if (lineaActual) lineas.push(lineaActual);
+
+      if (lineas.length > 0) {
+        doc.text(lineas[0], x + anchoModelo, yTexto);
+        for (let i = 1; i < lineas.length; i++) {
+          yTexto += altoLinea;
+          doc.text(lineas[i], x, yTexto);
+        }
+      }
+    };
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(...red);
@@ -342,6 +399,16 @@ export default function App() {
         tableWidth: 150,
         head: [["CONCEPTO", "CANT.", "VALOR (USD)"]],
         body: filasDesglose(a, index),
+        didParseCell: (data) => {
+          if (data.section === "body" && data.row.index === 0 && data.column.index === 0) {
+            data.cell.styles.textColor = [255, 255, 255];
+          }
+        },
+        didDrawCell: (data) => {
+          if (data.section === "body" && data.row.index === 0 && data.column.index === 0) {
+            dibujarConceptoConModeloNegrita(data, modelo.nombre);
+          }
+        },
         foot: [["SUBTOTAL:", "", fmt(subtotalAscensor(a, index))]],
         theme: "grid",
         styles: {
@@ -414,6 +481,31 @@ export default function App() {
           textColor: red,
           fontStyle: "bold",
           halign: "center",
+        },
+      });
+      y = doc.lastAutoTable.finalY + 7;
+    }
+
+    if (ascensores.length === 1) {
+      const totalGeneralPDF = subtotalAscensor(ascensores[0], 0) + subtotalInstalacionGeneral();
+      y = nuevaPaginaSiHaceFalta(22, y);
+      autoTable(doc, {
+        startY: y,
+        margin: { left: 78 },
+        tableWidth: 72,
+        body: [["TOTAL GENERAL:", fmt(totalGeneralPDF)]],
+        theme: "grid",
+        styles: {
+          fontSize: 10,
+          fontStyle: "bold",
+          cellPadding: 3,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.3,
+          halign: "center",
+        },
+        columnStyles: {
+          0: { cellWidth: 40, textColor: red },
+          1: { cellWidth: 32, textColor: red },
         },
       });
       y = doc.lastAutoTable.finalY + 7;
@@ -827,7 +919,26 @@ export default function App() {
         </section>
       )}
 
-      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", padding: 18, border: "1px solid #ddd" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: ascensores.length === 1 ? "space-between" : "flex-end",
+          alignItems: "center",
+          padding: 18,
+          border: "1px solid #ddd",
+          gap: 16,
+        }}
+      >
+        {ascensores.length === 1 && (
+          <div>
+            <div>Total general estimado</div>
+            <h2 style={{ margin: "6px 0" }}>
+              {fmt(subtotalAscensor(ascensores[0], 0) + subtotalInstalacionGeneral())}
+            </h2>
+            <small>No incluye IVA</small>
+          </div>
+        )}
+
         <button
           onClick={generarPDF}
           style={{ padding: "12px 24px", background: "#e20039", color: "white", border: 0, cursor: "pointer", borderRadius: 8, fontWeight: 700 }}
