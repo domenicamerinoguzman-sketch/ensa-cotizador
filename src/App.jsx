@@ -150,7 +150,6 @@ export default function App() {
     montajeGeneral: 400,
     pruebasGeneral: 120,
     transporteGeneral: "",
-    notaOpcional: "",
   });
 
   const [ascensores, setAscensores] = useState([nuevoAscensor()]);
@@ -250,6 +249,15 @@ export default function App() {
     return filas;
   };
 
+  const filasObraCivil = () => {
+    if (!form.obraCivil) return [];
+
+    const descripcion = form.obraCivilDescripcion?.trim() || "Obra civil";
+    const precio = parseFloat(form.obraCivilPrecio) || 0;
+
+    return [[descripcion, "1", fmt(precio)]];
+  };
+
   const subtotalAscensor = (a, index) =>
     filasDesglose(a, index).reduce((s, fila) => {
       const valor = fila[2].replace(/[$,]/g, "");
@@ -258,6 +266,12 @@ export default function App() {
 
   const subtotalInstalacionGeneral = () =>
     filasInstalacionGeneral().reduce((s, fila) => {
+      const valor = fila[2].replace(/[$,]/g, "");
+      return s + (parseFloat(valor) || 0);
+    }, 0);
+
+  const subtotalObraCivil = () =>
+    filasObraCivil().reduce((s, fila) => {
       const valor = fila[2].replace(/[$,]/g, "");
       return s + (parseFloat(valor) || 0);
     }, 0);
@@ -312,8 +326,8 @@ export default function App() {
     doc.text("Estimad@", margin, y);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...red);
-    y += 7;
-    doc.text(nombreEstimado, margin, y);
+    y +=7;
+    doc.text(nombreEstimado, margin + 16, y);
 
     if (form.atencion?.trim()) {
       y += 6;
@@ -559,8 +573,54 @@ export default function App() {
       y = doc.lastAutoTable.finalY + 7;
     }
 
+    const filasObra = filasObraCivil();
+    if (filasObra.length > 0) {
+      y = nuevaPaginaSiHaceFalta(38, y);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.2);
+      doc.setTextColor(...red);
+      doc.text("Obra civil", 18, y);
+      y += 3;
+
+      autoTable(doc, {
+        startY: y,
+        margin: { left: 18, right: 18 },
+        tableWidth: 150,
+        head: [["DESCRIPCIÓN", "CANT.", "VALOR (USD)"]],
+        body: filasObra,
+        foot: [["SUBTOTAL OBRA CIVIL:", "", fmt(subtotalObraCivil())]],
+        theme: "grid",
+        styles: {
+          font: "helvetica",
+          fontSize: 8.2,
+          cellPadding: 2.2,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.25,
+          valign: "middle",
+        },
+        headStyles: {
+          fillColor: red,
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          halign: "center",
+        },
+        columnStyles: {
+          0: { cellWidth: 102 },
+          1: { cellWidth: 24, halign: "center" },
+          2: { cellWidth: 40, halign: "center" },
+        },
+        footStyles: {
+          fillColor: [255, 255, 255],
+          textColor: red,
+          fontStyle: "bold",
+          halign: "center",
+        },
+      });
+      y = doc.lastAutoTable.finalY + 7;
+    }
+
     if (ascensores.length === 1) {
-      const totalGeneralPDF = subtotalAscensor(ascensores[0], 0) + subtotalInstalacionGeneral();
+      const totalGeneralPDF = subtotalAscensor(ascensores[0], 0) + subtotalInstalacionGeneral() + subtotalObraCivil();
       y = nuevaPaginaSiHaceFalta(22, y);
       autoTable(doc, {
         startY: y,
@@ -584,60 +644,54 @@ export default function App() {
       y = doc.lastAutoTable.finalY + 7;
     }
 
-    const modelosUnicosCotizacion = [...new Set(ascensores.map((a) => a.modelo))];
-
-    if (modelosUnicosCotizacion.length === 1) {
     const modeloReferencia = PRECIOS[ascensores[0].modelo];
-      const paradaReferencia = modeloReferencia.paradas[parseInt(ascensores[0].paradas)];
-      const ad = modeloReferencia.adicionales;
-      const op = modeloReferencia.opcionales;
-  
-      const adicionales = [
-        ["Metro adicional de intermedio", fmt(ad.metroAdicional)],
-        ["Costo adicional color especial estructura", fmt(paradaReferencia.colorEstructura)],
-        ["Costo adicional de policarbonato cristal", fmt(paradaReferencia.policarbonatoCristal)],
-        ["Falso cabezal (cada 50cm)", fmt(ad.falsoCabezal)],
-        ["Bisagra izquierda", fmt(ad.bisagra)],
-      ];
-      const opcionales = [
-        ["Llavín de cabina (c/u)", fmt(op.llavin)],
-        ["Barandilla negra", fmt(op.barandillaNegra)],
-        ["Barandilla acero inox", fmt(op.barandillaInox)],
-        ["Sillín rebatible", fmt(op.sillin)],
-        ["Cielo raso dibon espejado", fmt(op.cieloRaso)],
-        ["Moqueta", fmt(op.moqueta)],
-        ["Cierra puerta automática (c/u)", fmt(op.cierraPuerta)],
-        ["Rampa de chapa estándar", fmt(op.rampa)],
-        ["Cabezal silent", fmt(op.cabezalSilent)],
-      ];
-  
-      y = nuevaPaginaSiHaceFalta(80, y);
-      autoTable(doc, {
-        startY: y,
-        margin: { left: 33 },
-        tableWidth: 70,
-        head: [[{ content: `Adicionales (${modeloReferencia.nombre})`, colSpan: 2 }], ["DESCRIPCIÓN", "VALOR (USD)"]],
-        body: adicionales,
-        theme: "grid",
-        styles: { fontSize: 7.7, cellPadding: 1.7, lineColor: [170, 170, 170], lineWidth: 0.25 },
-        headStyles: { fillColor: red, textColor: [255, 255, 255], halign: "center", fontStyle: "bold" },
-        columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 20, halign: "center" } },
-      });
-      autoTable(doc, {
-        startY: y,
-        margin: { left: 106 },
-        tableWidth: 70,
-        head: [[{ content: `Opcionales (${modeloReferencia.nombre})`, colSpan: 2 }], ["DESCRIPCIÓN", "VALOR (USD)"]],
-        body: opcionales,
-        theme: "grid",
-        styles: { fontSize: 7.7, cellPadding: 1.7, lineColor: [170, 170, 170], lineWidth: 0.25 },
-        headStyles: { fillColor: red, textColor: [255, 255, 255], halign: "center", fontStyle: "bold" },
-        columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 20, halign: "center" } },
-      });
-      y = Math.max(doc.lastAutoTable.finalY, y + 55) + 6;
-  
-  
-    }
+    const paradaReferencia = modeloReferencia.paradas[parseInt(ascensores[0].paradas)];
+    const ad = modeloReferencia.adicionales;
+    const op = modeloReferencia.opcionales;
+
+    const adicionales = [
+      ["Metro adicional de intermedio", fmt(ad.metroAdicional)],
+      ["Costo adicional color especial estructura", fmt(paradaReferencia.colorEstructura)],
+      ["Costo adicional de policarbonato cristal", fmt(paradaReferencia.policarbonatoCristal)],
+      ["Falso cabezal (cada 50cm)", fmt(ad.falsoCabezal)],
+      ["Bisagra izquierda", fmt(ad.bisagra)],
+    ];
+    const opcionales = [
+      ["Llavín de cabina (c/u)", fmt(op.llavin)],
+      ["Barandilla negra", fmt(op.barandillaNegra)],
+      ["Barandilla acero inox", fmt(op.barandillaInox)],
+      ["Sillín rebatible", fmt(op.sillin)],
+      ["Cielo raso dibon espejado", fmt(op.cieloRaso)],
+      ["Moqueta", fmt(op.moqueta)],
+      ["Cierra puerta automática (c/u)", fmt(op.cierraPuerta)],
+      ["Rampa de chapa estándar", fmt(op.rampa)],
+      ["Cabezal silent", fmt(op.cabezalSilent)],
+    ];
+
+    y = nuevaPaginaSiHaceFalta(80, y);
+    autoTable(doc, {
+      startY: y,
+      margin: { left: 33 },
+      tableWidth: 70,
+      head: [[{ content: `Adicionales (${modeloReferencia.nombre})`, colSpan: 2 }], ["DESCRIPCIÓN", "VALOR (USD)"]],
+      body: adicionales,
+      theme: "grid",
+      styles: { fontSize: 7.7, cellPadding: 1.7, lineColor: [170, 170, 170], lineWidth: 0.25 },
+      headStyles: { fillColor: red, textColor: [255, 255, 255], halign: "center", fontStyle: "bold" },
+      columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 20, halign: "center" } },
+    });
+    autoTable(doc, {
+      startY: y,
+      margin: { left: 106 },
+      tableWidth: 70,
+      head: [[{ content: `Opcionales (${modeloReferencia.nombre})`, colSpan: 2 }], ["DESCRIPCIÓN", "VALOR (USD)"]],
+      body: opcionales,
+      theme: "grid",
+      styles: { fontSize: 7.7, cellPadding: 1.7, lineColor: [170, 170, 170], lineWidth: 0.25 },
+      headStyles: { fillColor: red, textColor: [255, 255, 255], halign: "center", fontStyle: "bold" },
+      columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 20, halign: "center" } },
+    });
+    y = Math.max(doc.lastAutoTable.finalY, y + 55) + 6;
 
     if (y + 90 > pageH - 18) {
       doc.addPage();
@@ -668,19 +722,13 @@ export default function App() {
     yLeft += 6;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.3);
-    const notas = [
+    [
       "El precio incluye: ascensor color estándar (negro), costos de importación, flete internacional, aduana, y aranceles.",
       "No incluye: IVA.",
       "Adecuaciones y trabajos de obra civil a cargo del cliente.",
       "Se puede personalizar color de estructura, policarbonato y accesorios adicionales previo al cierre del acuerdo comercial.",
       "Requiere acometida de 220V. más tierra. El consumo eléctrico es mínimo.",
-    ];
-
-    if (form.notaOpcional?.trim()) {
-      notas.push(form.notaOpcional.trim());
-    }
-
-    notas.forEach((t) => (yLeft = bullet(leftX, yLeft, t, colTextW)));
+      ].forEach((t) => (yLeft = bullet(leftX, yLeft, t, colTextW)));
 
     doc.setDrawColor(170, 170, 170);
     doc.line(102, y, 102, Math.max(yLeft, yRight) + 4);
@@ -812,12 +860,6 @@ export default function App() {
           {form.ciudad === "otra" && (
             <input style={{ gridColumn: "1/-1" }} value={form.ciudadOtra} onChange={(e) => setCampo("ciudadOtra", e.target.value)} placeholder="Nombre de la ciudad" />
           )}
-          <textarea
-            style={{ gridColumn: "1/-1", minHeight: 80, padding: 8, resize: "vertical" }}
-            value={form.notaOpcional}
-            onChange={(e) => setCampo("notaOpcional", e.target.value)}
-            placeholder="Nota opcional para esta cotización (ej. condiciones especiales, observaciones del cliente, detalles de obra civil...)"
-          />
         </div>
       </section>
 
@@ -1053,8 +1095,7 @@ export default function App() {
               border: "1px solid #eee",
             }}
           >
-            <div>Costo de instalación: $0</div>
-            <div>Costo de transporte: $0</div>
+            Costo de instalación: $0
           </div>
         ) : (
           <>
@@ -1101,13 +1142,49 @@ export default function App() {
             )}
           </>
         )}
+
+        <div style={{ marginTop: 18, borderTop: "1px solid #eee", paddingTop: 16 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, fontWeight: 700 }}>
+            <input
+              type="checkbox"
+              checked={form.obraCivil || false}
+              onChange={(e) => setCampo("obraCivil", e.target.checked)}
+            />
+            Incluir obra civil
+          </label>
+
+          {form.obraCivil && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 160px", gap: 12 }}>
+              <div>
+                <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Descripción de obra civil</label>
+                <textarea
+                  value={form.obraCivilDescripcion}
+                  onChange={(e) => setCampo("obraCivilDescripcion", e.target.value)}
+                  placeholder="Ej: Adecuación de vano, trabajos de albañilería, reforzamiento, acabados..."
+                  style={{ width: "100%", minHeight: 70, padding: 10, boxSizing: "border-box", resize: "vertical" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Precio obra civil ($)</label>
+                <input
+                  type="number"
+                  value={form.obraCivilPrecio}
+                  onChange={(e) => setCampo("obraCivilPrecio", e.target.value)}
+                  placeholder="Ej: 500"
+                  style={{ width: "100%", padding: 10, boxSizing: "border-box" }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
       </section>
 
       <div style={{ display: "flex", justifyContent: ascensores.length === 1 ? "space-between" : "flex-end", alignItems: "center", padding: 18, border: "1px solid #ddd", gap: 16 }}>
         {ascensores.length === 1 && (
           <div>
             <div>Total general estimado</div>
-            <h2 style={{ margin: "6px 0" }}>{fmt(subtotalAscensor(ascensores[0], 0) + subtotalInstalacionGeneral())}</h2>
+            <h2 style={{ margin: "6px 0" }}>{fmt(subtotalAscensor(ascensores[0], 0) + subtotalInstalacionGeneral() + subtotalObraCivil())}</h2>
             <small>No incluye IVA</small>
           </div>
         )}
@@ -1118,4 +1195,3 @@ export default function App() {
     </div>
   );
 }
-
