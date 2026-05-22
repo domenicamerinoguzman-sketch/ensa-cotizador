@@ -100,6 +100,7 @@ export default function App() {
     ciudad: "Cuenca", ciudadOtra: "",
     instalacionGeneral: false, montajeGeneral: 400, pruebasGeneral: 120, transporteGeneral: "",
     obraCivil: false, obraCivilDescripcion: "", obraCivilPrecio: "",
+    notasFinales: "",
   });
 
   const [ascensores, setAscensores] = useState([nuevoAscensor()]);
@@ -249,6 +250,104 @@ export default function App() {
       return y;
     };
 
+    // PORTADA PREMIUM
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, pageW, pageH, "F");
+
+    doc.setFillColor(...red);
+    doc.rect(0, 0, pageW, 14, "F");
+    doc.setFillColor(...red);
+    doc.rect(0, pageH - 14, pageW, 14, "F");
+
+    doc.setDrawColor(...red);
+    doc.setLineWidth(0.8);
+    doc.roundedRect(16, 24, pageW - 32, pageH - 58, 5, 5, "S");
+
+    if (logo) doc.addImage(logo, "PNG", 63, 34, 84, 43);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(...red);
+    doc.text("PROPUESTA COMERCIAL", pageW / 2, 96, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(...NEGRO);
+    doc.text("Ascensores neumáticos panorámicos", pageW / 2, 104, { align: "center" });
+
+    doc.setFillColor(248, 248, 248);
+    doc.roundedRect(34, 120, pageW - 68, 58, 4, 4, "F");
+
+    doc.setFontSize(9.5);
+
+    let infoY = 134;
+
+    doc.setTextColor(...red);
+    doc.setFont("helvetica", "bold");
+    doc.text("Cliente / Proyecto:", 44, infoY);
+
+    doc.setTextColor(...NEGRO);
+    doc.setFont("helvetica", "normal");
+    doc.text(form.cliente || "Cliente", 76, infoY);
+
+    infoY += 12;
+
+    if (form.atencion?.trim()) {
+      doc.setTextColor(...red);
+      doc.setFont("helvetica", "bold");
+      doc.text("Atención a:", 44, infoY);
+
+      doc.setTextColor(...NEGRO);
+      doc.setFont("helvetica", "normal");
+      doc.text(form.atencion, 76, infoY);
+
+      infoY += 12;
+    }
+
+    doc.setTextColor(...red);
+    doc.setFont("helvetica", "bold");
+    doc.text("Ciudad:", 44, infoY);
+
+    doc.setTextColor(...NEGRO);
+    doc.setFont("helvetica", "normal");
+    doc.text(ciudadFinal || "Ciudad", 76, infoY);
+
+    doc.setTextColor(...red);
+    doc.setFont("helvetica", "bold");
+    doc.text("Cotización N°:", 112, 134);
+    doc.text("Fecha:", 112, 146);
+
+    doc.setTextColor(...NEGRO);
+    doc.setFont("helvetica", "normal");
+    doc.text(`COT-2026-${form.numeroCot || "XXXX"}`, 142, 134);
+    doc.text(form.fecha, 142, 146);
+
+    doc.setDrawColor(230, 230, 230);
+    doc.line(58, 198, 152, 198);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11.5);
+    doc.setTextColor(...red);
+    doc.text("Movilidad panorámica premium para tu proyecto", pageW / 2, 210, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(90, 90, 90);
+    const frasePortada = "Tecnología neumática de alta gama, instalación limpia y diseño arquitectónico moderno.";
+    const lineasFrase = doc.splitTextToSize(frasePortada, 100);
+    doc.text(lineasFrase, pageW / 2, 219, { align: "center" });
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(...red);
+    doc.text("ENSA ECUADOR", pageW / 2, 250, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...NEGRO);
+    doc.text("Ascensores Neumáticos del Ecuador", pageW / 2, 257, { align: "center" });
+
+    doc.addPage();
+
     // ENCABEZADO
     if (logo) doc.addImage(logo, "PNG", 78, 8, 54, 28);
     doc.setFont("helvetica", "bold"); doc.setFontSize(8.5);
@@ -351,8 +450,10 @@ export default function App() {
       const modelo = PRECIOS[a.modelo];
       y = nuevaPaginaSiHaceFalta(55, y);
       doc.setFont("helvetica", "bold"); doc.setFontSize(9.2); doc.setTextColor(...red);
-      doc.text(`Ascensor ${index + 1}: ${a.etiqueta || modelo.nombre}`, 18, y);
-      y += 3;
+      const tituloAscensor = `Ascensor ${index + 1}: ${a.etiqueta || modelo.nombre}`;
+      const tituloLineas = doc.splitTextToSize(tituloAscensor, 170);
+      doc.text(tituloLineas, 18, y);
+      y += tituloLineas.length * 4 + 3;
 
       const conDesc = !!a.descuentoActivo;
       // Sin columna TOTAL — solo CONCEPTO, CANT, VALOR, DESCUENTO (si aplica)
@@ -387,10 +488,25 @@ export default function App() {
         },
         foot,
         theme: "grid",
-        styles: { font: "helvetica", fontSize: 8.2, cellPadding: 2.2, lineColor: [0, 0, 0], lineWidth: 0.25, valign: "middle", halign: "center" },
+        alternateRowStyles: { fillColor: [248, 248, 248] },
+        styles: {
+          font: "helvetica",
+          fontSize: 8.2,
+          cellPadding: 2.6,
+          lineColor: [210, 210, 210],
+          lineWidth: 0.15,
+          valign: "middle",
+          halign: "center",
+        },
         headStyles: { fillColor: red, textColor: [255, 255, 255], fontStyle: "bold", halign: "center" },
         columnStyles: colStyles,
-        footStyles: { fillColor: [255, 255, 255], textColor: red, fontStyle: "bold", halign: "center" },
+        footStyles: {
+          fillColor: [255, 245, 247],
+          textColor: red,
+          fontStyle: "bold",
+          halign: "center",
+          lineWidth: 0.3,
+        },
       });
       y = doc.lastAutoTable.finalY + 10;
 
@@ -439,10 +555,25 @@ export default function App() {
         body: filasInst,
         foot: [["SUBTOTAL INSTALACIÓN:", "", fmt(subtotalInstalacionGeneral())]],
         theme: "grid",
-        styles: { font: "helvetica", fontSize: 8.2, cellPadding: 2.2, lineColor: [0, 0, 0], lineWidth: 0.25, valign: "middle", halign: "center" },
+        alternateRowStyles: { fillColor: [248, 248, 248] },
+        styles: {
+          font: "helvetica",
+          fontSize: 8.2,
+          cellPadding: 2.6,
+          lineColor: [210, 210, 210],
+          lineWidth: 0.15,
+          valign: "middle",
+          halign: "center",
+        },
         headStyles: { fillColor: red, textColor: [255, 255, 255], fontStyle: "bold", halign: "center" },
         columnStyles: { 0: { cellWidth: 102, halign: "center" }, 1: { cellWidth: 24, halign: "center" }, 2: { cellWidth: 40, halign: "center" } },
-        footStyles: { fillColor: [255, 255, 255], textColor: red, fontStyle: "bold", halign: "center" },
+        footStyles: {
+          fillColor: [255, 245, 247],
+          textColor: red,
+          fontStyle: "bold",
+          halign: "center",
+          lineWidth: 0.3,
+        },
       });
       y = doc.lastAutoTable.finalY + 7;
     }
@@ -459,10 +590,25 @@ export default function App() {
         body: filasObra,
         foot: [["SUBTOTAL OBRA CIVIL:", "", fmt(subtotalObraCivil())]],
         theme: "grid",
-        styles: { font: "helvetica", fontSize: 8.2, cellPadding: 2.2, lineColor: [0, 0, 0], lineWidth: 0.25, valign: "middle", halign: "center" },
+        alternateRowStyles: { fillColor: [248, 248, 248] },
+        styles: {
+          font: "helvetica",
+          fontSize: 8.2,
+          cellPadding: 2.6,
+          lineColor: [210, 210, 210],
+          lineWidth: 0.15,
+          valign: "middle",
+          halign: "center",
+        },
         headStyles: { fillColor: red, textColor: [255, 255, 255], fontStyle: "bold", halign: "center" },
         columnStyles: { 0: { cellWidth: 102, halign: "center" }, 1: { cellWidth: 24, halign: "center" }, 2: { cellWidth: 40, halign: "center" } },
-        footStyles: { fillColor: [255, 255, 255], textColor: red, fontStyle: "bold", halign: "center" },
+        footStyles: {
+          fillColor: [255, 245, 247],
+          textColor: red,
+          fontStyle: "bold",
+          halign: "center",
+          lineWidth: 0.3,
+        },
       });
       y = doc.lastAutoTable.finalY + 7;
     }
@@ -550,6 +696,21 @@ export default function App() {
       "Requiere acometida de 220V. más tierra. El consumo eléctrico es mínimo.",
     ].forEach((t) => (yLeft = bullet(leftX, yLeft, t, colTextW)));
 
+    if (form.notasFinales?.trim()) {
+      yLeft += 4;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(...red);
+      doc.text("Observaciones adicionales:", leftX, yLeft);
+      yLeft += 5;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.3);
+      doc.setTextColor(...NEGRO);
+      const notasPersonalizadas = doc.splitTextToSize(form.notasFinales, colTextW);
+      doc.text(notasPersonalizadas, leftX, yLeft);
+      yLeft += notasPersonalizadas.length * 4.3 + 2;
+    }
+
     doc.setDrawColor(170, 170, 170); doc.line(102, y, 102, Math.max(yLeft, yRight) + 4);
     doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(...red);
     doc.text("CONDICIONES COMERCIALES", rightX, yRight); yRight += 6;
@@ -587,6 +748,24 @@ export default function App() {
     doc.setFont("helvetica", "normal"); doc.setTextColor(...NEGRO);
     doc.text("Tel: 0998623488  |  Email: info@ensaecuador.com", pageW / 2, y, { align: "center" });
 
+    // NUMERACIÓN DE PÁGINAS
+    const totalPages = doc.getNumberOfPages();
+
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(120, 120, 120);
+
+      doc.text(
+        `Página ${i} de ${totalPages}`,
+        pageW - 18,
+        pageH - 8,
+        { align: "right" }
+      );
+    }
+
     // UNIR FICHAS TÉCNICAS
     try {
       const cotizacionBytes = doc.output("arraybuffer");
@@ -615,9 +794,126 @@ export default function App() {
   };
 
   return (
-    <div style={{ padding: "1.5rem 1rem", maxWidth: 900, margin: "0 auto", fontFamily: "Arial, sans-serif" }}>
-      <h2>Generador de Cotizaciones</h2>
-      <p>ENSA Ecuador — Ascensores Neumáticos</p>
+    <div className="ensa-app">
+      <style>{`
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #f5f6f8; }
+        .ensa-app {
+          min-height: 100vh;
+          padding: 28px 16px 42px;
+          font-family: Arial, sans-serif;
+          color: #232323;
+          background:
+            radial-gradient(circle at top left, rgba(226, 0, 57, 0.10), transparent 32%),
+            linear-gradient(180deg, #ffffff 0%, #f5f6f8 35%, #f3f4f6 100%);
+        }
+        .ensa-shell { max-width: 1040px; margin: 0 auto; }
+        .ensa-hero {
+          background: linear-gradient(135deg, #e20039 0%, #9f0028 100%);
+          color: white;
+          border-radius: 24px;
+          padding: 28px;
+          margin-bottom: 22px;
+          box-shadow: 0 18px 45px rgba(226, 0, 57, 0.22);
+          display: flex;
+          justify-content: space-between;
+          gap: 18px;
+          align-items: center;
+          overflow: hidden;
+          position: relative;
+        }
+        .ensa-hero::after {
+          content: "";
+          position: absolute;
+          right: -55px;
+          top: -55px;
+          width: 190px;
+          height: 190px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.13);
+        }
+        .ensa-hero h2 { margin: 0 0 8px; font-size: 30px; letter-spacing: -0.5px; }
+        .ensa-hero p { margin: 0; opacity: .92; font-size: 15px; }
+        .ensa-badge {
+          position: relative;
+          z-index: 1;
+          background: rgba(255, 255, 255, 0.15);
+          border: 1px solid rgba(255, 255, 255, 0.28);
+          border-radius: 999px;
+          padding: 10px 16px;
+          font-weight: 700;
+          white-space: nowrap;
+          backdrop-filter: blur(8px);
+        }
+        .ensa-app section, .ensa-total-card {
+          background: rgba(255, 255, 255, 0.94) !important;
+          border: 1px solid rgba(20, 20, 20, 0.08) !important;
+          border-radius: 18px !important;
+          box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+        }
+        .ensa-app section { padding: 20px !important; }
+        .ensa-app h3, .ensa-app h4 { color: #1f2937; }
+        .ensa-app h3 { font-size: 20px; }
+        .ensa-app h4 { margin-top: 20px; margin-bottom: 10px; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: #e20039; }
+        .ensa-app input, .ensa-app select, .ensa-app textarea {
+          border: 1px solid #d8dde6;
+          border-radius: 12px;
+          background: #fff;
+          color: #1f2937;
+          outline: none;
+          transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+          font-size: 14px;
+        }
+        .ensa-app input:focus, .ensa-app select:focus, .ensa-app textarea:focus {
+          border-color: #e20039;
+          box-shadow: 0 0 0 4px rgba(226, 0, 57, 0.12);
+        }
+        .ensa-app button {
+          border-radius: 12px;
+          border: 1px solid #d8dde6;
+          background: #ffffff;
+          color: #1f2937;
+          cursor: pointer;
+          font-weight: 700;
+          transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+        }
+        .ensa-app button:hover {
+          transform: translateY(-1px);
+          border-color: #e20039;
+          box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
+        }
+        .ensa-primary-button {
+          background: linear-gradient(135deg, #e20039, #b8002e) !important;
+          color: white !important;
+          border: 0 !important;
+          box-shadow: 0 14px 28px rgba(226, 0, 57, 0.25) !important;
+        }
+        .ensa-subtotal {
+          margin-top: 16px;
+          padding: 12px 14px;
+          border-radius: 14px;
+          background: #fff5f7;
+          color: #e20039;
+          border: 1px solid rgba(226, 0, 57, 0.14);
+          font-weight: 800;
+        }
+        .ensa-total-card { border-radius: 20px !important; }
+        @media (max-width: 720px) {
+          .ensa-hero { align-items: flex-start; flex-direction: column; padding: 22px; }
+          .ensa-hero h2 { font-size: 24px; }
+          .ensa-app div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+          .ensa-app div[style*="display: flex"] { flex-wrap: wrap; }
+        }
+      `}</style>
+      <div className="ensa-shell">
+        <div className="ensa-hero">
+          <div>
+            <h2>Generador de Cotizaciones</h2>
+            <p>ENSA Ecuador — Ascensores Neumáticos</p>
+          </div>
+          <div className="ensa-badge">Propuesta comercial</div>
+        </div>
 
       <section style={{ marginBottom: 22 }}>
         <h4>Datos del cliente</h4>
@@ -766,7 +1062,7 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ marginTop: 16, fontWeight: 700 }}>Subtotal ascensor {index + 1}: {fmt(subtotalAscensor(a))}</div>
+            <div className="ensa-subtotal">Subtotal ascensor {index + 1}: {fmt(subtotalAscensor(a))}</div>
           </section>
         );
       })}
@@ -840,17 +1136,48 @@ export default function App() {
         </div>
       </section>
 
-      <div style={{ display: "flex", justifyContent: ascensores.length === 1 ? "space-between" : "flex-end", alignItems: "center", padding: 18, border: "1px solid #ddd", gap: 16 }}>
+      <section style={{ marginBottom: 24, padding: 18, border: "1px solid #ddd", borderRadius: 10 }}>
+        <h3 style={{ marginTop: 0 }}>Notas / Observaciones personalizadas</h3>
+        <textarea
+          value={form.notasFinales}
+          onChange={(e) => setCampo("notasFinales", e.target.value)}
+          placeholder="Escriba aquí observaciones adicionales, condiciones especiales, aclaraciones, promociones, etc."
+          style={{
+            width: "100%",
+            minHeight: 120,
+            padding: 12,
+            boxSizing: "border-box",
+            resize: "vertical",
+            fontFamily: "Arial, sans-serif",
+          }}
+        />
+        <small>Este texto aparecerá al final del PDF dentro de la sección Nota.</small>
+      </section>
+
+      <div className="ensa-total-card" style={{ display: "flex", justifyContent: ascensores.length === 1 ? "space-between" : "flex-end", alignItems: "center", padding: 18, border: "1px solid #ddd", gap: 16 }}>
         {ascensores.length === 1 && (
           <div>
             <div>Total general estimado</div>
-            <h2 style={{ margin: "6px 0" }}>{fmt(subtotalAscensor(ascensores[0]) + subtotalInstalacionGeneral() + subtotalObraCivil())}</h2>
-            <small>No incluye IVA</small>
+            <h2
+            style={{
+              margin: "6px 0",
+              color: "#e20039",
+              fontSize: 42,
+              fontWeight: 800,
+              letterSpacing: "-1px",
+            }}
+            >
+  {fmt(subtotalAscensor(ascensores[0]) + subtotalInstalacionGeneral() + subtotalObraCivil())}
+</h2>
+            <small style={{ color: "#555", fontSize: 13 }}>
+              No incluye IVA
+            </small>
           </div>
         )}
-        <button onClick={generarPDF} style={{ padding: "12px 24px", background: "#e20039", color: "white", border: 0, cursor: "pointer", borderRadius: 8, fontWeight: 700 }}>
+        <button className="ensa-primary-button" onClick={generarPDF} style={{ padding: "12px 24px", background: "#e20039", color: "white", border: 0, cursor: "pointer", borderRadius: 8, fontWeight: 700 }}>
           Generar PDF
         </button>
+      </div>
       </div>
     </div>
   );
