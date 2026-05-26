@@ -628,47 +628,100 @@ export default function App() {
     }
 
     // TABLAS ADICIONALES Y OPCIONALES
-    const modeloRef = PRECIOS[ascensores[0].modelo];
-    const paradaRef = modeloRef.paradas[parseInt(ascensores[0].paradas)];
-    const ad = modeloRef.adicionales, op = modeloRef.opcionales;
+    // Solo se muestran cuando TODOS los ascensores son del mismo modelo.
+    // Si se mezclan modelos, se ocultan para evitar confusión de precios.
+    const todosMismoModelo = ascensores.every(
+      (a) => a.modelo === ascensores[0].modelo
+    );
 
-    const adicionales = [
-      ["Metro adicional de intermedio", fmt(ad.metroAdicional)],
-      ["Costo adicional color especial estructura", fmt(paradaRef.colorEstructura)],
-      ["Costo adicional de policarbonato cristal", fmt(paradaRef.policarbonatoCristal)],
-      ["Falso cabezal (cada 50cm)", fmt(ad.falsoCabezal)],
-      ["Bisagra izquierda", fmt(ad.bisagra)],
-    ];
-    const opcionales = [
-      ["Llavín de cabina (c/u)", fmt(op.llavin)],
-      ["Barandilla negra", fmt(op.barandillaNegra)],
-      ["Barandilla acero inox", fmt(op.barandillaInox)],
-      ["Sillín rebatible", fmt(op.sillin)],
-      ["Cielo raso dibon espejado", fmt(op.cieloRaso)],
-      ["Moqueta", fmt(op.moqueta)],
-      ["Cierra puerta automática (c/u)", fmt(op.cierraPuerta)],
-      ["Rampa de chapa estándar", fmt(op.rampa)],
-      ["Cabezal silent", fmt(op.cabezalSilent)],
-    ];
+    if (todosMismoModelo) {
+      const modeloRef = PRECIOS[ascensores[0].modelo];
+      const paradaRef = modeloRef.paradas[parseInt(ascensores[0].paradas)];
+      const ad = modeloRef.adicionales;
+      const op = modeloRef.opcionales;
 
-    y = nuevaPaginaSiHaceFalta(80, y);
-    autoTable(doc, {
-      startY: y, margin: { left: 33 }, tableWidth: 70,
-      head: [[{ content: `Adicionales (${modeloRef.nombre})`, colSpan: 2 }], ["DESCRIPCIÓN", "VALOR (USD)"]],
-      body: adicionales, theme: "grid",
-      styles: { fontSize: 7.7, cellPadding: 1.7, lineColor: [170, 170, 170], lineWidth: 0.25, halign: "center" },
-      headStyles: { fillColor: red, textColor: [255, 255, 255], halign: "center", fontStyle: "bold" },
-      columnStyles: { 0: { cellWidth: 50, halign: "center" }, 1: { cellWidth: 20, halign: "center" } },
-    });
-    autoTable(doc, {
-      startY: y, margin: { left: 106 }, tableWidth: 70,
-      head: [[{ content: `Opcionales (${modeloRef.nombre})`, colSpan: 2 }], ["DESCRIPCIÓN", "VALOR (USD)"]],
-      body: opcionales, theme: "grid",
-      styles: { fontSize: 7.7, cellPadding: 1.7, lineColor: [170, 170, 170], lineWidth: 0.25, halign: "center" },
-      headStyles: { fillColor: red, textColor: [255, 255, 255], halign: "center", fontStyle: "bold" },
-      columnStyles: { 0: { cellWidth: 50, halign: "center" }, 1: { cellWidth: 20, halign: "center" } },
-    });
-    y = Math.max(doc.lastAutoTable.finalY, y + 55) + 6;
+      const adicionales = [
+        ["Metro adicional de intermedio", fmt(ad.metroAdicional)],
+        ["Costo adicional color especial estructura", fmt(paradaRef.colorEstructura)],
+        ["Costo adicional de policarbonato cristal", fmt(paradaRef.policarbonatoCristal)],
+        ["Falso cabezal (cada 50cm)", fmt(ad.falsoCabezal)],
+        ["Bisagra izquierda", fmt(ad.bisagra)],
+      ];
+
+      const opcionales = [
+        ["Llavín de cabina (c/u)", fmt(op.llavin)],
+        ["Barandilla negra", fmt(op.barandillaNegra)],
+        ["Barandilla acero inox", fmt(op.barandillaInox)],
+        ["Sillín rebatible", fmt(op.sillin)],
+        ["Cielo raso dibon espejado", fmt(op.cieloRaso)],
+        ["Moqueta", fmt(op.moqueta)],
+        ["Cierra puerta automática (c/u)", fmt(op.cierraPuerta)],
+        ["Rampa de chapa estándar", fmt(op.rampa)],
+        ["Cabezal silent", fmt(op.cabezalSilent)],
+      ];
+
+      y = nuevaPaginaSiHaceFalta(80, y);
+
+      autoTable(doc, {
+        startY: y,
+        margin: { left: 33 },
+        tableWidth: 70,
+        head: [
+          [{ content: `Adicionales (${modeloRef.nombre})`, colSpan: 2 }],
+          ["DESCRIPCIÓN", "VALOR (USD)"],
+        ],
+        body: adicionales,
+        theme: "grid",
+        styles: {
+          fontSize: 7.7,
+          cellPadding: 1.7,
+          lineColor: [170, 170, 170],
+          lineWidth: 0.25,
+          halign: "center",
+        },
+        headStyles: {
+          fillColor: red,
+          textColor: [255, 255, 255],
+          halign: "center",
+          fontStyle: "bold",
+        },
+        columnStyles: {
+          0: { cellWidth: 50, halign: "center" },
+          1: { cellWidth: 20, halign: "center" },
+        },
+      });
+
+      autoTable(doc, {
+        startY: y,
+        margin: { left: 106 },
+        tableWidth: 70,
+        head: [
+          [{ content: `Opcionales (${modeloRef.nombre})`, colSpan: 2 }],
+          ["DESCRIPCIÓN", "VALOR (USD)"],
+        ],
+        body: opcionales,
+        theme: "grid",
+        styles: {
+          fontSize: 7.7,
+          cellPadding: 1.7,
+          lineColor: [170, 170, 170],
+          lineWidth: 0.25,
+          halign: "center",
+        },
+        headStyles: {
+          fillColor: red,
+          textColor: [255, 255, 255],
+          halign: "center",
+          fontStyle: "bold",
+        },
+        columnStyles: {
+          0: { cellWidth: 50, halign: "center" },
+          1: { cellWidth: 20, halign: "center" },
+        },
+      });
+
+      y = Math.max(doc.lastAutoTable.finalY, y + 55) + 6;
+    }
 
     // NOTAS Y CONDICIONES
     if (y + 90 > pageH - 18) { doc.addPage(); y = 15; }
