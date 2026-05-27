@@ -33,7 +33,7 @@ const PRECIOS = {
       4: { base: 26035, colorEstructura: 400, policarbonatoCristal: 1400 },
       5: { base: 29153, colorEstructura: 500, policarbonatoCristal: 1750 },
     },
-    adicionales: { metroAdicional: 400, falsoCabezal: 200, bisagra: 300 },
+    adicionales: { metroAdicional: 470, falsoCabezal: 200, bisagra: 300 },
     opcionales: {
       llavin: 160, barandillaNegra: 180, barandillaInox: 270, sillin: 200,
       cieloRaso: 255, moqueta: 100, cierraPuerta: 360, rampa: 90, cabezalSilent: 1500,
@@ -127,7 +127,7 @@ export default function App() {
     const modelo = PRECIOS[a.modelo];
     if (a.modelo === "PVE30") return `${modelo.nombre} Panorámico 360°, 1 pasajero - 150Kg., ${a.paradas} paradas. Requiere un espacio físico libre de 0.8 mts. Embarque y desembarque alineados a planta baja, no permite cambios de orientación.`;
     if (a.modelo === "PVE37") return `${modelo.nombre} Panorámico 360°, 2 pasajeros - 200Kg., ${a.paradas} paradas. Requiere un espacio físico libre de 1 metro. Embarque y desembarque en planta alta a cualquier orientación 0° - 90° - 180° o 270° en relación a planta baja.`;
-    if (a.modelo === "PVE52") return `${modelo.nombre} Panorámico 360°, 3 pasajeros - 250Kg., ${a.paradas} paradas. Requiere un espacio físico libre de 1.50 metros. Embarque y desembarque en planta alta orientado a 0° o 180° en relación a planta baja.`;
+    if (a.modelo === "PVE52") return `${modelo.nombre} Panorámico 360°, 3 pasajeros - 240Kg., ${a.paradas} paradas. Requiere un espacio físico libre de 1.50 metros. Embarque y desembarque en planta alta orientado a 0° o 180° en relación a planta baja.`;
     return `${modelo.nombre} Panorámico 360°, ${modelo.descripcion}, ${a.paradas} paradas.`;
   };
 
@@ -1064,7 +1064,7 @@ export default function App() {
               ].map(([key, label, precio]) => (
                 <div key={key}>
                   <label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>{label}</label>
-                  <input style={{ width: "100%", padding: 8 }} type="number" min="0" value={a[key]} onChange={(e) => setAscensor(a.id, key, parseInt(e.target.value) || 0)} />
+                  <input style={{ width: "100%", padding: 8 }} type="number" step="0.1" min="0" value={a[key]} onChange={(e) => setAscensor(a.id, key, parseFloat(e.target.value) || 0)} />
                   <small>Precio unitario: {fmt(precio)}</small>
                 </div>
               ))}
