@@ -41,7 +41,7 @@ const PRECIOS = {
   },
   PVE52: {
     nombre: "PVE52-1316",
-    descripcion: "3 pasajeros - 250Kg.",
+    descripcion: "3 pasajeros - 240Kg.",
     espacio: "1.50 metros",
     paradas: {
       2: { base: 27994, colorEstructura: 300, policarbonatoCristal: 740 },
