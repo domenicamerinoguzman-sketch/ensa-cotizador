@@ -215,7 +215,7 @@ export default function App() {
       ["Pruebas, ajustes, puesta en marcha y capacitación", "1", fmt(form.pruebasGeneral || 0)],
     ];
 
-    if (form.transporteGeneral) {
+    if (form.transporteGeneral !== "") {
       filas.push([
         `Transporte equipos Cuenca - ${ciudadFinal}`,
         "1",
@@ -1142,7 +1142,7 @@ export default function App() {
               <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Instalación y montaje ($)</label>
               <input
                 type="number"
-                value={form.montajeGeneral || 400}
+                value={form.montajeGeneral}
                 onChange={(e) => setCampo("montajeGeneral", Number(e.target.value))}
                 style={{ width: "100%", padding: 10, boxSizing: "border-box" }}
               />
@@ -1151,7 +1151,7 @@ export default function App() {
               <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Pruebas y puesta en marcha ($)</label>
               <input
                 type="number"
-                value={form.pruebasGeneral || 120}
+                value={form.pruebasGeneral}
                 onChange={(e) => setCampo("pruebasGeneral", Number(e.target.value))}
                 style={{ width: "100%", padding: 10, boxSizing: "border-box" }}
               />
