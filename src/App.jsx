@@ -3,7 +3,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PDFDocument } from "pdf-lib";
 
-const ROJO = [226, 0, 57];
+const ROJO = [0, 0, 0];
 const NEGRO = [35, 35, 35];
 
 const PRECIOS = {
@@ -97,6 +97,7 @@ const nuevoAscensor = () => ({
 export default function App() {
   const [form, setForm] = useState({
     numeroCot: "", fecha: fechaHoy(), cliente: "", atencion: "",
+    asesor: "Ing. Geovanny Piedra Beltrán", asesorOtro: "",
     ciudad: "Cuenca", ciudadOtra: "",
     instalacionGeneral: false, montajeGeneral: 400, pruebasGeneral: 120, transporteGeneral: "",
     obraCivil: false, obraCivilDescripcion: "", obraCivilPrecio: "",
@@ -107,6 +108,7 @@ export default function App() {
 
   const ciudadFinal = form.ciudad === "otra" ? form.ciudadOtra : form.ciudad;
   const esCuenca = ciudadFinal.toLowerCase() === "cuenca";
+  const asesorFinal = form.asesor === "otro" ? form.asesorOtro : form.asesor;
 
   const setCampo = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const setAscensor = (id, k, v) =>
@@ -125,9 +127,9 @@ export default function App() {
 
   const descripcionAscensor = (a) => {
     const modelo = PRECIOS[a.modelo];
-    if (a.modelo === "PVE30") return `${modelo.nombre} Panorámico 360°, 1 pasajero - 150Kg., ${a.paradas} paradas. Requiere un espacio físico libre de 0.8 mts. Embarque y desembarque alineados a planta baja, no permite cambios de orientación.`;
-    if (a.modelo === "PVE37") return `${modelo.nombre} Panorámico 360°, 2 pasajeros - 200Kg., ${a.paradas} paradas. Requiere un espacio físico libre de 1 metro. Embarque y desembarque en planta alta a cualquier orientación 0° - 90° - 180° o 270° en relación a planta baja.`;
-    if (a.modelo === "PVE52") return `${modelo.nombre} Panorámico 360°, 3 pasajeros - 240Kg., ${a.paradas} paradas. Requiere un espacio físico libre de 1.50 metros. Embarque y desembarque en planta alta orientado a 0° o 180° en relación a planta baja.`;
+    if (a.modelo === "PVE30") return `${modelo.nombre} Panorámico 360°, 1 pasajero - 150Kg., ${a.paradas} paradas. Requiere un espacio físico libre de 0.8 m. Embarque y desembarque alineados a planta baja, no permite cambios de orientación.`;
+    if (a.modelo === "PVE37") return `${modelo.nombre} Panorámico 360°, 2 pasajeros - 200Kg., ${a.paradas} paradas. Requiere un espacio físico libre de 1 m. Embarque y desembarque en planta alta a cualquier orientación 0° - 90° - 180° o 270° en relación a planta baja.`;
+    if (a.modelo === "PVE52") return `${modelo.nombre} Panorámico 360°, 3 pasajeros - 240Kg., ${a.paradas} paradas. Requiere un espacio físico libre de 1.50 m. Embarque y desembarque en planta alta orientado a 0° o 180° en relación a planta baja.`;
     return `${modelo.nombre} Panorámico 360°, ${modelo.descripcion}, ${a.paradas} paradas.`;
   };
 
@@ -240,6 +242,7 @@ export default function App() {
   const generarPDF = async () => {
     const doc = new jsPDF("p", "mm", "a4");
     const logo = await loadImageBase64("/ensa.png");
+    const fotoPortada = await loadImageBase64("/foto-portada.PNG");
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
     const margin = 12;
@@ -254,116 +257,105 @@ export default function App() {
     doc.setFillColor(255, 255, 255);
     doc.rect(0, 0, pageW, pageH, "F");
 
-    doc.setFillColor(...red);
-    doc.rect(0, 0, pageW, 14, "F");
-    doc.setFillColor(...red);
-    doc.rect(0, pageH - 14, pageW, 14, "F");
-
-    doc.setDrawColor(...red);
-    doc.setLineWidth(0.8);
-    doc.roundedRect(16, 24, pageW - 32, pageH - 58, 5, 5, "S");
-
-    if (logo) doc.addImage(logo, "PNG", 63, 34, 84, 43);
+    if (logo) doc.addImage(logo, "PNG", 63, 15, 85, 85);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
     doc.setTextColor(...red);
-    doc.text("PROPUESTA COMERCIAL", pageW / 2, 96, { align: "center" });
+    doc.text("PROPUESTA COMERCIAL", pageW / 2, 118, { align: "center" });
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
     doc.setTextColor(...NEGRO);
-    doc.text("Ascensores neumáticos panorámicos", pageW / 2, 104, { align: "center" });
+    doc.text("Ascensores Neumáticos Panorámicos", pageW / 2, 126, { align: "center" });
 
-    doc.setFillColor(248, 248, 248);
-    doc.roundedRect(34, 120, pageW - 68, 58, 4, 4, "F");
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(34, 138, pageW - 68, 58, 4, 4, "F");
 
     doc.setFontSize(9.5);
 
-    let infoY = 134;
+    let infoY = 144;
 
     doc.setTextColor(...red);
     doc.setFont("helvetica", "bold");
-    doc.text("Cliente / Proyecto:", 44, infoY);
+    doc.text("Cliente:", 52, infoY);
 
     doc.setTextColor(...NEGRO);
     doc.setFont("helvetica", "normal");
-    doc.text(form.cliente || "Cliente", 76, infoY);
+    doc.text(form.cliente || "Cliente", 86, infoY);
 
     infoY += 12;
 
     if (form.atencion?.trim()) {
       doc.setTextColor(...red);
       doc.setFont("helvetica", "bold");
-      doc.text("Atención a:", 44, infoY);
+      doc.text("Atención a:", 58, infoY);
 
       doc.setTextColor(...NEGRO);
       doc.setFont("helvetica", "normal");
-      doc.text(form.atencion, 76, infoY);
+      doc.text(form.atencion, 92, infoY);
 
       infoY += 12;
     }
 
     doc.setTextColor(...red);
     doc.setFont("helvetica", "bold");
-    doc.text("Ciudad:", 44, infoY);
+    doc.text("Ciudad:", 52, infoY);
 
     doc.setTextColor(...NEGRO);
     doc.setFont("helvetica", "normal");
-    doc.text(ciudadFinal || "Ciudad", 76, infoY);
+    doc.text(ciudadFinal || "Ciudad", 86, infoY);
 
     doc.setTextColor(...red);
     doc.setFont("helvetica", "bold");
-    doc.text("Cotización N°:", 112, 134);
-    doc.text("Fecha:", 112, 146);
+    doc.text("Cotización N°:", 112, 144);
+    doc.text("Fecha:", 112, 156);
 
     doc.setTextColor(...NEGRO);
     doc.setFont("helvetica", "normal");
-    doc.text(`COT-2026-${form.numeroCot || "XXXX"}`, 142, 134);
-    doc.text(form.fecha, 142, 146);
+    doc.text(`COT-2026-${form.numeroCot || "XXXX"}`, 144, 144);
+    doc.text(form.fecha, 144, 156);
 
-    doc.setDrawColor(230, 230, 230);
-    doc.line(58, 198, 152, 198);
 
+    // BLOQUE INFERIOR DE PORTADA: TEXTO IZQUIERDA + FOTO DERECHA
+    // Diseño limpio: texto centrado verticalmente con la foto y sin ENSA ECUADOR abajo
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11.5);
+    doc.setFontSize(15);
     doc.setTextColor(...red);
-    doc.text("Movilidad panorámica premium para tu proyecto", pageW / 2, 210, { align: "center" });
+    doc.text("Una obra de arte\ncon el poder del aire", 58, 191, { align: "center" });
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(90, 90, 90);
     const frasePortada = "Tecnología neumática de alta gama, instalación limpia y diseño arquitectónico moderno.";
-    const lineasFrase = doc.splitTextToSize(frasePortada, 100);
-    doc.text(lineasFrase, pageW / 2, 219, { align: "center" });
+    const lineasFrase = doc.splitTextToSize(frasePortada, 72);
+    doc.text(lineasFrase, 58, 222, { align: "center" });
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.setTextColor(...red);
-    doc.text("ENSA ECUADOR", pageW / 2, 250, { align: "center" });
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
-    doc.setTextColor(...NEGRO);
-    doc.text("Ascensores Neumáticos del Ecuador", pageW / 2, 257, { align: "center" });
+    if (fotoPortada) {
+      doc.addImage(fotoPortada, "PNG", 104, 165, 88, 112);
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.25);
+      doc.rect(104, 165, 88, 112);
+    }
 
     doc.addPage();
 
     // ENCABEZADO
-    if (logo) doc.addImage(logo, "PNG", 78, 8, 54, 28);
+    if (logo) doc.addImage(logo, "PNG", 86, 4, 46, 46);
     doc.setFont("helvetica", "bold"); doc.setFontSize(8.5);
     doc.setTextColor(...red); doc.text("Cotización N°:", 150, 13);
     doc.setTextColor(...NEGRO); doc.text(`COT-2026-${form.numeroCot || "XXXX"}`, 150, 18);
-    doc.setDrawColor(170, 170, 170); doc.line(150, 20, 196, 20);
+    doc.setDrawColor(170, 170, 170); 
     doc.setTextColor(...red); doc.text("Fecha:", 150, 26);
-    doc.setTextColor(...NEGRO); doc.text(form.fecha, 150, 31);
-    doc.line(150, 33, 196, 33);
+    doc.setTextColor(...NEGRO); doc.text(`${ciudadFinal}, ${form.fecha}`, 150, 31);
+    
     doc.setTextColor(...red); doc.text("Cliente:", 150, 38);
     doc.setTextColor(...NEGRO); doc.text(form.cliente || "Cliente", 150, 42);
     doc.setDrawColor(...red); doc.setLineWidth(0.6);
-    doc.line(margin, 43, pageW - margin, 43);
+    doc.line(margin, 48, pageW - margin, 48);
 
     // SALUDO
-    let y = 50;
+    let y = 56;
     doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(...NEGRO);
     doc.text("Estimad@", margin, y);
     y += 6;
@@ -379,15 +371,11 @@ export default function App() {
       y += 6;
     } else {
       doc.setFont("helvetica", "bold"); doc.setTextColor(...red);
-      doc.text((form.cliente || "Cliente").toUpperCase(), margin, y);
-      y += 6;
+      doc.text(form.cliente || "Cliente", margin, y);
+      y += 8;
     }
-
-    doc.setFont("helvetica", "bold"); doc.setTextColor(...NEGRO);
-    doc.text(`${ciudadFinal}. –`, margin, y);
-    y += 8;
     doc.setFont("helvetica", "normal");
-    const intro = "Reciba un cordial saludo de parte de ENSA Ecuador. Nos complace presentar nuestra propuesta para la implementación de ascensor(es) neumático(s) panorámico(s) para su domicilio o proyecto.";
+    const intro = "ENSA Ecuador se complace en presentar la propuesta para la implementación del ascensor neumático panorámico en su domicilio o proyecto.";
     doc.text(doc.splitTextToSize(intro, 178), margin, y);
     y += 14;
 
@@ -396,20 +384,24 @@ export default function App() {
     doc.text("Beneficios", margin, y);
     y += 8;
     const beneficios = [
-      "Diseño panorámico 360° con imagen premium.",
-      "Sin cuarto de máquinas y sin necesidad de foso.",
-      "Instalación rápida y limpia.",
-      "Bajo consumo energético y mantenimiento eficiente.",
       "Ideal para adultos mayores y personas con movilidad reducida.",
+      "Bajo consumo energético y mantenimiento eficiente.",
+      "Sin cuarto de máquinas y sin necesidad de foso.",
+      "Diseño panorámico 360° con imagen premium.",
+      "Instalación rápida y limpia.",
     ];
     beneficios.forEach((b, i) => {
       const x = margin + i * 37;
-      doc.setFillColor(248, 248, 248);
-      doc.roundedRect(x, y, 34, 22, 2, 2, "F");
-      doc.setFillColor(...red);
-      doc.circle(x + 5, y + 5, 2.8, "F");
-      doc.setFont("helvetica", "normal"); doc.setFontSize(6.7); doc.setTextColor(...NEGRO);
-      doc.text(doc.splitTextToSize(b, 22), x + 10, y + 5);
+
+      // Sin recuadro de fondo: solo logo ENSA + texto
+      if (logo) {
+        doc.addImage(logo, "PNG", x + 1.8, y + 1.8, 6.4, 6.4);
+      }
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.5);
+      doc.setTextColor(...NEGRO);
+      doc.text(doc.splitTextToSize(b, 20), x + 10.5, y + 5);
     });
     y += 30;
 
@@ -441,9 +433,9 @@ export default function App() {
       }
     };
 
-    // DESGLOSE ECONÓMICO
+    // PROPUESTA ECONÓMICA
     doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(...red);
-    doc.text("Desglose Económico", margin, y);
+    doc.text("Propuesta Económica", margin, y);
     y += 6;
 
     ascensores.forEach((a, index) => {
@@ -501,7 +493,7 @@ export default function App() {
         headStyles: { fillColor: red, textColor: [255, 255, 255], fontStyle: "bold", halign: "center" },
         columnStyles: colStyles,
         footStyles: {
-          fillColor: [255, 245, 247],
+          fillColor: [245, 245, 245],
           textColor: red,
           fontStyle: "bold",
           halign: "center",
@@ -568,7 +560,7 @@ export default function App() {
         headStyles: { fillColor: red, textColor: [255, 255, 255], fontStyle: "bold", halign: "center" },
         columnStyles: { 0: { cellWidth: 102, halign: "center" }, 1: { cellWidth: 24, halign: "center" }, 2: { cellWidth: 40, halign: "center" } },
         footStyles: {
-          fillColor: [255, 245, 247],
+          fillColor: [245, 245, 245],
           textColor: red,
           fontStyle: "bold",
           halign: "center",
@@ -603,7 +595,7 @@ export default function App() {
         headStyles: { fillColor: red, textColor: [255, 255, 255], fontStyle: "bold", halign: "center" },
         columnStyles: { 0: { cellWidth: 102, halign: "center" }, 1: { cellWidth: 24, halign: "center" }, 2: { cellWidth: 40, halign: "center" } },
         footStyles: {
-          fillColor: [255, 245, 247],
+          fillColor: [245, 245, 245],
           textColor: red,
           fontStyle: "bold",
           halign: "center",
@@ -696,7 +688,7 @@ export default function App() {
         margin: { left: 106 },
         tableWidth: 70,
         head: [
-          [{ content: `Opcionales (${modeloRef.nombre})`, colSpan: 2 }],
+          [{ content: `Accesorios (${modeloRef.nombre})`, colSpan: 2 }],
           ["DESCRIPCIÓN", "VALOR (USD)"],
         ],
         body: opcionales,
@@ -739,7 +731,7 @@ export default function App() {
     let yLeft = y, yRight = y;
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(...red);
-    doc.text("Nota:", leftX, yLeft); yLeft += 6;
+    doc.text("NOTA:", leftX, yLeft); yLeft += 6;
     doc.setFont("helvetica", "normal"); doc.setFontSize(7.3);
     [
       "El precio incluye: ascensor color estándar (negro), costos de importación, flete internacional, aduana, y aranceles.",
@@ -790,31 +782,57 @@ export default function App() {
     if (y > pageH - 55) { doc.addPage(); y = 25; }
     doc.setDrawColor(...red); doc.setLineWidth(0.6);
     doc.line(margin, y, pageW - margin, y); y += 7;
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...NEGRO);
-    doc.text("Esta cotización tiene validez de 30 días.", pageW / 2, y, { align: "center" }); y += 5;
-    doc.text("Quedo atento para coordinar fecha de cierre y firma de contrato.", pageW / 2, y, { align: "center" });
-    y += 32;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(...NEGRO);
+    doc.text("*Esta cotización tiene validez de 30 días.", margin, y);
+    y += 4;
+    doc.text("*Ficha técnica adjunta.", margin, y);
+    y += 7;
+     doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...NEGRO);
+    doc.text("Quedo a su disposición para coordinar los siguientes pasos de la propuesta.", pageW / 2, y, { align: "center" });
+    y += 25;
     doc.setDrawColor(120, 120, 120); doc.line(70, y, 140, y); y += 5;
     doc.setFont("helvetica", "bold");
-    doc.text("Ing. Geovanny Piedra Beltrán", pageW / 2, y, { align: "center" }); y += 5;
+    doc.text(asesorFinal || "Ing. Geovanny Piedra Beltrán", pageW / 2, y, { align: "center" }); y += 5;
     doc.setTextColor(...red); doc.text("ENSA ECUADOR", pageW / 2, y, { align: "center" }); y += 5;
     doc.setFont("helvetica", "normal"); doc.setTextColor(...NEGRO);
     doc.text("Tel: 0998623488  |  Email: info@ensaecuador.com", pageW / 2, y, { align: "center" });
 
-    // NUMERACIÓN DE PÁGINAS
+    // PIE DE PÁGINA CORPORATIVO
     const totalPages = doc.getNumberOfPages();
 
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
 
+      // En la portada solo dejamos numeración discreta, sin franja ni pie corporativo
+      if (i === 1) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(120, 120, 120);
+        doc.text(
+          `Página ${i} de ${totalPages}`,
+          pageW - 12,
+          pageH - 10,
+          { align: "right" }
+        );
+        continue;
+      }
+
+      // Pie corporativo solo desde la página 2
       doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(90, 90, 90);
+
+      doc.text("www.ensa.com.arg", 12, pageH - 14);
+      doc.text("Tel: 0998623488", 12, pageH - 10);
+      doc.text("Email: info@ensaecuador.com", 12, pageH - 6);
+
+      // Numeración
       doc.setFontSize(8);
       doc.setTextColor(120, 120, 120);
-
       doc.text(
         `Página ${i} de ${totalPages}`,
-        pageW - 18,
-        pageH - 8,
+        pageW - 12,
+        pageH - 10,
         { align: "right" }
       );
     }
@@ -849,25 +867,27 @@ export default function App() {
   return (
     <div className="ensa-app">
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+
         * { box-sizing: border-box; }
         body { margin: 0; background: #f5f6f8; }
         .ensa-app {
           min-height: 100vh;
           padding: 28px 16px 42px;
-          font-family: Arial, sans-serif;
+          font-family: "Montserrat", Arial, sans-serif;
           color: #232323;
           background:
-            radial-gradient(circle at top left, rgba(226, 0, 57, 0.10), transparent 32%),
+            radial-gradient(circle at top left, rgba(0, 0, 0, 0.06), transparent 32%),
             linear-gradient(180deg, #ffffff 0%, #f5f6f8 35%, #f3f4f6 100%);
         }
         .ensa-shell { max-width: 1040px; margin: 0 auto; }
         .ensa-hero {
-          background: linear-gradient(135deg, #e20039 0%, #9f0028 100%);
+          background: linear-gradient(135deg, #000000 0%, #222222 100%);
           color: white;
           border-radius: 24px;
           padding: 28px;
           margin-bottom: 22px;
-          box-shadow: 0 18px 45px rgba(226, 0, 57, 0.22);
+          box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
           display: flex;
           justify-content: space-between;
           gap: 18px;
@@ -907,7 +927,7 @@ export default function App() {
         .ensa-app section { padding: 20px !important; }
         .ensa-app h3, .ensa-app h4 { color: #1f2937; }
         .ensa-app h3 { font-size: 20px; }
-        .ensa-app h4 { margin-top: 20px; margin-bottom: 10px; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: #e20039; }
+        .ensa-app h4 { margin-top: 20px; margin-bottom: 10px; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: #000000; }
         .ensa-app input, .ensa-app select, .ensa-app textarea {
           border: 1px solid #d8dde6;
           border-radius: 12px;
@@ -918,8 +938,8 @@ export default function App() {
           font-size: 14px;
         }
         .ensa-app input:focus, .ensa-app select:focus, .ensa-app textarea:focus {
-          border-color: #e20039;
-          box-shadow: 0 0 0 4px rgba(226, 0, 57, 0.12);
+          border-color: #000000;
+          box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.12);
         }
         .ensa-app button {
           border-radius: 12px;
@@ -933,22 +953,22 @@ export default function App() {
         }
         .ensa-app button:hover {
           transform: translateY(-1px);
-          border-color: #e20039;
+          border-color: #000000;
           box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
         }
         .ensa-primary-button {
-          background: linear-gradient(135deg, #e20039, #b8002e) !important;
+          background: linear-gradient(135deg, #000000, #000000) !important;
           color: white !important;
           border: 0 !important;
-          box-shadow: 0 14px 28px rgba(226, 0, 57, 0.25) !important;
+          box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25) !important;
         }
         .ensa-subtotal {
           margin-top: 16px;
           padding: 12px 14px;
           border-radius: 14px;
-          background: #fff5f7;
-          color: #e20039;
-          border: 1px solid rgba(226, 0, 57, 0.14);
+          background: #f5f5f5;
+          color: #000000;
+          border: 1px solid rgba(0, 0, 0, 0.10);
           font-weight: 800;
         }
         .ensa-total-card { border-radius: 20px !important; }
@@ -973,7 +993,25 @@ export default function App() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <input value={form.numeroCot} onChange={(e) => setCampo("numeroCot", e.target.value)} placeholder="N° Cotización: ej. 1063" />
           <input value={form.fecha} onChange={(e) => setCampo("fecha", e.target.value)} placeholder="Fecha" />
-          <input style={{ gridColumn: "1/-1" }} value={form.cliente} onChange={(e) => setCampo("cliente", e.target.value)} placeholder="Cliente / Proyecto" />
+
+          <select style={{ gridColumn: "1/-1" }} value={form.asesor} onChange={(e) => setCampo("asesor", e.target.value)}>
+            <option value="Ing. Geovanny Piedra Beltrán">Ing. Geovanny Piedra Beltrán</option>
+            <option value="Econ. Jimena Rodriguez">Econ.Jimena Rodriguez</option>
+            <option value="Lcdo. Marcelo Galan">Lcdo. Marcelo Galan</option>
+            <option value="Ing. Juan Diego Villacreses">Ing. Juan Diego Villacreses</option>
+            <option value="otro">Otro / escribir manualmente...</option>
+          </select>
+
+          {form.asesor === "otro" && (
+            <input
+              style={{ gridColumn: "1/-1" }}
+              value={form.asesorOtro}
+              onChange={(e) => setCampo("asesorOtro", e.target.value)}
+              placeholder="Nombre de quien envía la cotización"
+            />
+          )}
+
+          <input style={{ gridColumn: "1/-1" }} value={form.cliente} onChange={(e) => setCampo("cliente", e.target.value)} placeholder="Cliente" />
           <input style={{ gridColumn: "1/-1" }} value={form.atencion} onChange={(e) => setCampo("atencion", e.target.value)} placeholder="Atención a (opcional): Ej. Ing. Juan Pérez" />
           <select style={{ gridColumn: "1/-1" }} value={form.ciudad} onChange={(e) => setCampo("ciudad", e.target.value)}>
             <option value="Cuenca">Cuenca</option>
@@ -1007,14 +1045,14 @@ export default function App() {
             <h4>Modelo del ascensor</h4>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
               {Object.entries(PRECIOS).map(([k, v]) => (
-                <button key={k} onClick={() => setAscensor(a.id, "modelo", k)} style={{ padding: 10, border: a.modelo === k ? "2px solid #e20039" : "1px solid #ccc" }}>
+                <button key={k} onClick={() => setAscensor(a.id, "modelo", k)} style={{ padding: 10, border: a.modelo === k ? "2px solid #000000" : "1px solid #ccc" }}>
                   <b>{v.nombre}</b><br /><small>{v.descripcion}</small>
                 </button>
               ))}
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               {[2, 3, 4, 5].map((p) => (
-                <button key={p} onClick={() => setAscensor(a.id, "paradas", String(p))} style={{ flex: 1, padding: 8, border: a.paradas === String(p) ? "2px solid #e20039" : "1px solid #ccc" }}>
+                <button key={p} onClick={() => setAscensor(a.id, "paradas", String(p))} style={{ flex: 1, padding: 8, border: a.paradas === String(p) ? "2px solid #000000" : "1px solid #ccc" }}>
                   {p} paradas
                 </button>
               ))}
@@ -1083,7 +1121,7 @@ export default function App() {
                 <div key={adec.id} style={{ display: "grid", gridTemplateColumns: "1fr 120px 36px", gap: 6, marginBottom: 6 }}>
                   <input placeholder="Descripción" value={adec.descripcion} onChange={(e) => { const n = [...a.adecuaciones]; n[i] = { ...n[i], descripcion: e.target.value }; setAscensor(a.id, "adecuaciones", n); }} />
                   <input type="number" placeholder="Precio $" value={adec.precio} onChange={(e) => { const n = [...a.adecuaciones]; n[i] = { ...n[i], precio: e.target.value }; setAscensor(a.id, "adecuaciones", n); }} />
-                  <button type="button" style={{ color: "#e20039", fontWeight: "bold", fontSize: 16, border: "1px solid #ddd", borderRadius: 4, cursor: "pointer" }} onClick={() => setAscensor(a.id, "adecuaciones", a.adecuaciones.filter((_, idx) => idx !== i))}>×</button>
+                  <button type="button" style={{ color: "#000000", fontWeight: "bold", fontSize: 16, border: "1px solid #ddd", borderRadius: 4, cursor: "pointer" }} onClick={() => setAscensor(a.id, "adecuaciones", a.adecuaciones.filter((_, idx) => idx !== i))}>×</button>
                 </div>
               ))}
             </div>
@@ -1109,7 +1147,7 @@ export default function App() {
                 {(a.fotos || []).map((foto, i) => (
                   <div key={foto.id} style={{ position: "relative", width: 80 }}>
                     <img src={foto.dataUrl} alt={foto.nombre} style={{ width: 80, height: 65, objectFit: "cover", borderRadius: 6, border: "1px solid #ddd" }} />
-                    <button type="button" onClick={() => setAscensor(a.id, "fotos", a.fotos.filter((_, idx) => idx !== i))} style={{ position: "absolute", top: 2, right: 2, background: "rgba(226,0,57,0.85)", color: "white", border: "none", borderRadius: "50%", width: 18, height: 18, fontSize: 11, cursor: "pointer", lineHeight: "18px", padding: 0, textAlign: "center" }}>×</button>
+                    <button type="button" onClick={() => setAscensor(a.id, "fotos", a.fotos.filter((_, idx) => idx !== i))} style={{ position: "absolute", top: 2, right: 2, background: "rgba(0,0,0,0.85)", color: "white", border: "none", borderRadius: "50%", width: 18, height: 18, fontSize: 11, cursor: "pointer", lineHeight: "18px", padding: 0, textAlign: "center" }}>×</button>
                   </div>
                 ))}
               </div>
@@ -1201,7 +1239,7 @@ export default function App() {
             padding: 12,
             boxSizing: "border-box",
             resize: "vertical",
-            fontFamily: "Arial, sans-serif",
+            fontFamily: "\"Montserrat\", Arial, sans-serif",
           }}
         />
         <small>Este texto aparecerá al final del PDF dentro de la sección Nota.</small>
@@ -1214,7 +1252,7 @@ export default function App() {
             <h2
             style={{
               margin: "6px 0",
-              color: "#e20039",
+              color: "#000000",
               fontSize: 42,
               fontWeight: 800,
               letterSpacing: "-1px",
@@ -1227,7 +1265,7 @@ export default function App() {
             </small>
           </div>
         )}
-        <button className="ensa-primary-button" onClick={generarPDF} style={{ padding: "12px 24px", background: "#e20039", color: "white", border: 0, cursor: "pointer", borderRadius: 8, fontWeight: 700 }}>
+        <button className="ensa-primary-button" onClick={generarPDF} style={{ padding: "12px 24px", background: "#000000", color: "white", border: 0, cursor: "pointer", borderRadius: 8, fontWeight: 700 }}>
           Generar PDF
         </button>
       </div>
