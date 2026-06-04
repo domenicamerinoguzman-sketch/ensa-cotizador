@@ -70,6 +70,48 @@ const fmt = (n) =>
 const fechaHoy = () =>
   new Date().toLocaleDateString("es-EC", { day: "numeric", month: "long", year: "numeric" });
 
+const obtenerAnioMesCotizacion = (fechaTexto) => {
+  const meses = {
+    enero: "01",
+    febrero: "02",
+    marzo: "03",
+    abril: "04",
+    mayo: "05",
+    junio: "06",
+    julio: "07",
+    agosto: "08",
+    septiembre: "09",
+    setiembre: "09",
+    octubre: "10",
+    noviembre: "11",
+    diciembre: "12",
+  };
+
+  const texto = String(fechaTexto || "").toLowerCase().trim();
+
+  // Formato esperado: "2 de junio de 2026"
+  const matchTexto = texto.match(/(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre).*?(\d{4})/);
+  if (matchTexto) {
+    const mes = meses[matchTexto[1]] || "01";
+    const anio = matchTexto[2].slice(-2);
+    return `${anio}${mes}`;
+  }
+
+  // Respaldo para formatos como 2026-06-02
+  const fecha = new Date(fechaTexto);
+  if (!Number.isNaN(fecha.getTime())) {
+    const anio = String(fecha.getFullYear()).slice(-2);
+    const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+    return `${anio}${mes}`;
+  }
+
+  // Respaldo si la fecha no se reconoce
+  const hoy = new Date();
+  const anio = String(hoy.getFullYear()).slice(-2);
+  const mes = String(hoy.getMonth() + 1).padStart(2, "0");
+  return `${anio}${mes}`;
+};
+
 const loadImageBase64 = (src) =>
   new Promise((resolve) => {
     const img = new Image();
@@ -109,6 +151,7 @@ export default function App() {
   const ciudadFinal = form.ciudad === "otra" ? form.ciudadOtra : form.ciudad;
   const esCuenca = ciudadFinal.toLowerCase() === "cuenca";
   const asesorFinal = form.asesor === "otro" ? form.asesorOtro : form.asesor;
+  const cotizacionFinal = `COT-${obtenerAnioMesCotizacion(form.fecha)}-${form.numeroCot || "XXXXX"}`;
 
   const setCampo = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const setAscensor = (id, k, v) =>
@@ -274,47 +317,60 @@ export default function App() {
 
     doc.setFontSize(9.5);
 
+    // BLOQUE DE DATOS PORTADA CENTRADO
+    // Ancho visual del bloque: de x=52 a x=168, centrado respecto a la hoja.
     let infoY = 144;
+
+    const datosLeftLabelX = 52;
+    const datosLeftValueX = 78;
+    const datosRightLabelX = 108;
+    const datosRightValueX = 142;
 
     doc.setTextColor(...red);
     doc.setFont("helvetica", "bold");
-    doc.text("Cliente:", 52, infoY);
+    doc.text("Cliente:", datosLeftLabelX, infoY);
 
     doc.setTextColor(...NEGRO);
     doc.setFont("helvetica", "normal");
-    doc.text(form.cliente || "Cliente", 86, infoY);
+    doc.text(form.cliente || "Cliente", datosLeftValueX, infoY);
+
+    doc.setTextColor(...red);
+    doc.setFont("helvetica", "bold");
+    doc.text("Cotización N°:", datosRightLabelX, infoY);
+
+    doc.setTextColor(...NEGRO);
+    doc.setFont("helvetica", "normal");
+    doc.text(cotizacionFinal, datosRightValueX, infoY);
 
     infoY += 12;
 
     if (form.atencion?.trim()) {
       doc.setTextColor(...red);
       doc.setFont("helvetica", "bold");
-      doc.text("Atención a:", 58, infoY);
+      doc.text("Atención a:", datosLeftLabelX, infoY);
 
       doc.setTextColor(...NEGRO);
       doc.setFont("helvetica", "normal");
-      doc.text(form.atencion, 92, infoY);
+      doc.text(form.atencion, datosLeftValueX, infoY);
 
       infoY += 12;
     }
 
     doc.setTextColor(...red);
     doc.setFont("helvetica", "bold");
-    doc.text("Ciudad:", 52, infoY);
+    doc.text("Ciudad:", datosLeftLabelX, infoY);
 
     doc.setTextColor(...NEGRO);
     doc.setFont("helvetica", "normal");
-    doc.text(ciudadFinal || "Ciudad", 86, infoY);
+    doc.text(ciudadFinal || "Ciudad", datosLeftValueX, infoY);
 
     doc.setTextColor(...red);
     doc.setFont("helvetica", "bold");
-    doc.text("Cotización N°:", 112, 144);
-    doc.text("Fecha:", 112, 156);
+    doc.text("Fecha:", datosRightLabelX, infoY);
 
     doc.setTextColor(...NEGRO);
     doc.setFont("helvetica", "normal");
-    doc.text(`COT-2026-${form.numeroCot || "XXXX"}`, 144, 144);
-    doc.text(form.fecha, 144, 156);
+    doc.text(form.fecha, datosRightValueX, infoY);
 
 
     // BLOQUE INFERIOR DE PORTADA: TEXTO IZQUIERDA + FOTO DERECHA
@@ -344,7 +400,7 @@ export default function App() {
     if (logo) doc.addImage(logo, "PNG", 86, 4, 46, 46);
     doc.setFont("helvetica", "bold"); doc.setFontSize(8.5);
     doc.setTextColor(...red); doc.text("Cotización N°:", 150, 13);
-    doc.setTextColor(...NEGRO); doc.text(`COT-2026-${form.numeroCot || "XXXX"}`, 150, 18);
+    doc.setTextColor(...NEGRO); doc.text(cotizacionFinal, 150, 18);
     doc.setDrawColor(170, 170, 170); 
     doc.setTextColor(...red); doc.text("Fecha:", 150, 26);
     doc.setTextColor(...NEGRO); doc.text(`${ciudadFinal}, ${form.fecha}`, 150, 31);
@@ -610,11 +666,11 @@ export default function App() {
       const totalGeneralPDF = subtotalAscensor(ascensores[0]) + subtotalInstalacionGeneral() + subtotalObraCivil();
       y = nuevaPaginaSiHaceFalta(22, y);
       autoTable(doc, {
-        startY: y, margin: { left: (pageW - 72) / 2 }, tableWidth: 72,
-        body: [["TOTAL GENERAL:", fmt(totalGeneralPDF)]],
+        startY: y, margin: { left: (pageW - 96) / 2 }, tableWidth: 96,
+        body: [["TOTAL GENERAL:", `${fmt(totalGeneralPDF)} + IVA`]],
         theme: "grid",
         styles: { fontSize: 10, fontStyle: "bold", cellPadding: 3, lineColor: [0, 0, 0], lineWidth: 0.3, halign: "center" },
-        columnStyles: { 0: { cellWidth: 40, textColor: red }, 1: { cellWidth: 32, textColor: red } },
+        columnStyles: { 0: { cellWidth: 48, textColor: red }, 1: { cellWidth: 48, textColor: red } },
       });
       y = doc.lastAutoTable.finalY + 7;
     }
@@ -652,7 +708,13 @@ export default function App() {
         ["Cabezal silent", fmt(op.cabezalSilent)],
       ];
 
-      y = nuevaPaginaSiHaceFalta(80, y);
+      y = nuevaPaginaSiHaceFalta(88, y);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10.5);
+      doc.setTextColor(...red);
+      doc.text("Adicionales y accesorios", pageW / 2, y, { align: "center" });
+      y += 6;
 
       autoTable(doc, {
         startY: y,
@@ -737,7 +799,7 @@ export default function App() {
       "El precio incluye: ascensor color estándar (negro), costos de importación, flete internacional, aduana, y aranceles.",
       "No incluye: IVA.",
       "Adecuaciones y trabajos de obra civil a cargo del cliente.",
-      "Se puede personalizar color de estructura, policarbonato y accesorios adicionales previo al cierre del acuerdo comercial.",
+      "Se puede personalizar color de estructura, policarbonato y accesorios adicionales con costo previo al cierre del acuerdo comercial.",
       "Requiere acometida de 220V. más tierra. El consumo eléctrico es mínimo.",
     ].forEach((t) => (yLeft = bullet(leftX, yLeft, t, colTextW)));
 
@@ -856,7 +918,7 @@ export default function App() {
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = url; link.download = `COT-2026-${form.numeroCot || "XXXX"}.pdf`;
+      link.href = url; link.download = `${cotizacionFinal}.pdf`;
       document.body.appendChild(link); link.click();
       document.body.removeChild(link); URL.revokeObjectURL(url);
     } catch (error) {
@@ -991,7 +1053,7 @@ export default function App() {
       <section style={{ marginBottom: 22 }}>
         <h4>Datos del cliente</h4>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <input value={form.numeroCot} onChange={(e) => setCampo("numeroCot", e.target.value)} placeholder="N° Cotización: ej. 1063" />
+          <input value={form.numeroCot} onChange={(e) => setCampo("numeroCot", e.target.value)} placeholder="N° asignado: ej. 10001" />
           <input value={form.fecha} onChange={(e) => setCampo("fecha", e.target.value)} placeholder="Fecha" />
 
           <select style={{ gridColumn: "1/-1" }} value={form.asesor} onChange={(e) => setCampo("asesor", e.target.value)}>
