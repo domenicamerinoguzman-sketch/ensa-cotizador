@@ -19,7 +19,7 @@ const PRECIOS = {
     },
     adicionales: { metroAdicional: 400, falsoCabezal: 200, bisagra: 300 },
     opcionales: {
-      llavin: 160, barandillaNegra: 180, barandillaInox: 270, sillin: 200,
+      llavin: 160, barandillaNegra: 180, barandillaInox: 270, barandillaColorEstructura: 230, sillin: 200,
       cieloRaso: 255, moqueta: 100, cierraPuerta: 360, rampa: 90, cabezalSilent: null,
     },
   },
@@ -35,7 +35,7 @@ const PRECIOS = {
     },
     adicionales: { metroAdicional: 470, falsoCabezal: 200, bisagra: 300 },
     opcionales: {
-      llavin: 160, barandillaNegra: 180, barandillaInox: 270, sillin: 200,
+      llavin: 160, barandillaNegra: 180, barandillaInox: 270, barandillaColorEstructura: 230, sillin: 200,
       cieloRaso: 255, moqueta: 100, cierraPuerta: 360, rampa: 90, cabezalSilent: 1500,
     },
   },
@@ -51,7 +51,7 @@ const PRECIOS = {
     },
     adicionales: { metroAdicional: 650, falsoCabezal: 200, bisagra: 300 },
     opcionales: {
-      llavin: 160, barandillaNegra: 180, barandillaInox: 270, sillin: 200,
+      llavin: 160, barandillaNegra: 180, barandillaInox: 270, barandillaColorEstructura: 230, sillin: 200,
       cieloRaso: 630, moqueta: 168, cierraPuerta: 360, rampa: 125, cabezalSilent: 2000,
     },
   },
@@ -130,7 +130,7 @@ const nuevoAscensor = () => ({
   id: crypto.randomUUID(), etiqueta: "", modelo: "PVE37", paradas: "4",
   colorEstructura: false, policarbonatoCristal: false, metrosAdicionales: 0,
   falsoCabezal: 0, bisagra: false, llavin: 0, barandillaNegra: false,
-  barandillaInox: false, sillin: false, cieloRaso: false, moqueta: false,
+  barandillaInox: false, barandillaColorEstructura: false, sillin: false, cieloRaso: false, moqueta: false,
   cierraPuerta: 0, rampa: false, cabezalSilent: false,
   descuentoActivo: false, descuentoValor: "",
   adecuaciones: [], fotos: [],
@@ -214,6 +214,7 @@ export default function App() {
     if (a.llavin > 0) add("Llavín de cabina", a.llavin, a.llavin * op.llavin);
     if (a.barandillaNegra) add("Barandilla negra", 1, op.barandillaNegra);
     if (a.barandillaInox) add("Barandilla acero inox", 1, op.barandillaInox);
+    if (a.barandillaColorEstructura) add("Barandilla color estructura", 1, op.barandillaColorEstructura);
     if (a.sillin) add("Sillín rebatible", 1, op.sillin);
     if (a.cieloRaso) add("Cielo raso dibon espejado", 1, op.cieloRaso);
     if (a.moqueta) add("Moqueta", 1, op.moqueta);
@@ -242,6 +243,7 @@ export default function App() {
     if (a.llavin > 0) total += a.llavin * op.llavin;
     if (a.barandillaNegra) total += op.barandillaNegra;
     if (a.barandillaInox) total += op.barandillaInox;
+    if (a.barandillaColorEstructura) total += op.barandillaColorEstructura;
     if (a.sillin) total += op.sillin;
     if (a.cieloRaso) total += op.cieloRaso;
     if (a.moqueta) total += op.moqueta;
@@ -535,6 +537,7 @@ export default function App() {
           }
         },
         foot,
+        showFoot: "lastPage",
         theme: "grid",
         alternateRowStyles: { fillColor: [248, 248, 248] },
         styles: {
@@ -700,6 +703,7 @@ export default function App() {
         ["Llavín de cabina (c/u)", fmt(op.llavin)],
         ["Barandilla negra", fmt(op.barandillaNegra)],
         ["Barandilla acero inox", fmt(op.barandillaInox)],
+        ["Barandilla color estructura", fmt(op.barandillaColorEstructura)],
         ["Sillín rebatible", fmt(op.sillin)],
         ["Cielo raso dibon espejado", fmt(op.cieloRaso)],
         ["Moqueta", fmt(op.moqueta)],
@@ -1143,6 +1147,7 @@ export default function App() {
                 ["bisagra", "Bisagra izquierda", ad.bisagra],
                 ["barandillaNegra", "Barandilla negra", op.barandillaNegra],
                 ["barandillaInox", "Barandilla acero inox", op.barandillaInox],
+                ["barandillaColorEstructura", "Barandilla color estructura", op.barandillaColorEstructura],
                 ["sillin", "Sillín rebatible", op.sillin],
                 ["cieloRaso", "Cielo raso dibon espejado", op.cieloRaso],
                 ["moqueta", "Moqueta", op.moqueta],
