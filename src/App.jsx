@@ -565,7 +565,7 @@ export default function App() {
       if (a.fotos && a.fotos.length > 0) {
         y = nuevaPaginaSiHaceFalta(60, y);
         doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...red);
-        doc.text(`Fotografías - Ascensor ${index + 1}${a.etiqueta ? ": " + a.etiqueta : ""}`, 18, y);
+        doc.text(`Fotografías Adicionales`, 18, y);
         y += 5;
         const cols = 2, gap = 5, startX = 18;
         const fotoW = (170 - gap) / cols;
