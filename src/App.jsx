@@ -127,7 +127,7 @@ const loadImageBase64 = (src) =>
   });
 
 const nuevoAscensor = () => ({
-  id: crypto.randomUUID(), etiqueta: "", modelo: "PVE37", paradas: "4",
+  id: crypto.randomUUID(), etiqueta: "", modelo: "PVE37", paradas: "4", cantidad: 1,
   colorEstructura: false, policarbonatoCristal: false, metrosAdicionales: 0,
   falsoCabezal: 0, bisagra: false, llavin: 0, barandillaNegra: false,
   barandillaInox: false, barandillaColorEstructura: false, sillin: false, cieloRaso: false, moqueta: false,
@@ -141,7 +141,7 @@ export default function App() {
     numeroCot: "", fecha: fechaHoy(), cliente: "", atencion: "",
     asesor: "Ing. Geovanny Piedra Beltrán", asesorOtro: "",
     ciudad: "Cuenca", ciudadOtra: "",
-    instalacionGeneral: false, montajeGeneral: 400, pruebasGeneral: 120, transporteGeneral: "",
+    instalacionGeneral: false, montajeGeneral: 400, transporteGeneral: "",
     obraCivil: false, obraCivilDescripcion: "", obraCivilPrecio: "",
     notasFinales: "",
   });
@@ -205,7 +205,13 @@ export default function App() {
       }
     };
 
-    add(descripcionAscensor(a), 1, parada.base, descuentoBaseAscensor(a));
+    const cantidadAscensores = parseInt(a.cantidad) || 1;
+    add(
+      descripcionAscensor(a),
+      cantidadAscensores,
+      parada.base * cantidadAscensores,
+      descuentoBaseAscensor(a) * cantidadAscensores
+    );
     if (a.colorEstructura) add("Color especial estructura", 1, parada.colorEstructura);
     if (a.policarbonatoCristal) add("Policarbonato cristal", 1, parada.policarbonatoCristal);
     if (a.metrosAdicionales > 0) add("Metro adicional de intermedio", a.metrosAdicionales, a.metrosAdicionales * ad.metroAdicional);
@@ -234,7 +240,8 @@ export default function App() {
     const parada = modelo.paradas[parseInt(a.paradas)];
     const op = modelo.opcionales;
     const ad = modelo.adicionales;
-    let total = parada.base - descuentoBaseAscensor(a);
+    const cantidadAscensores = parseInt(a.cantidad) || 1;
+    let total = (parada.base * cantidadAscensores) - (descuentoBaseAscensor(a) * cantidadAscensores);
     if (a.colorEstructura) total += parada.colorEstructura;
     if (a.policarbonatoCristal) total += parada.policarbonatoCristal;
     if (a.metrosAdicionales > 0) total += a.metrosAdicionales * ad.metroAdicional;
@@ -259,12 +266,11 @@ export default function App() {
 
     const filas = [
       ["Instalación y montaje (de 2 a 3 días)", "1", fmt(form.montajeGeneral || 0)],
-      ["Pruebas, ajustes, puesta en marcha y capacitación", "1", fmt(form.pruebasGeneral || 0)],
     ];
 
     if (form.transporteGeneral !== "") {
       filas.push([
-        `Transporte equipos Cuenca - ${ciudadFinal}`,
+        "Transporte de equipos",
         "1",
         fmt(parseFloat(form.transporteGeneral) || 0),
       ]);
@@ -320,59 +326,102 @@ export default function App() {
     doc.setFontSize(9.5);
 
     // BLOQUE DE DATOS PORTADA CENTRADO
-    // Ancho visual del bloque: de x=52 a x=168, centrado respecto a la hoja.
+    // Columnas con ancho fijo para evitar que textos largos se monten entre sí.
     let infoY = 144;
 
-    const datosLeftLabelX = 52;
-    const datosLeftValueX = 78;
-    const datosRightLabelX = 108;
-    const datosRightValueX = 142;
+    const datosLeftLabelX = 45;
+    const datosLeftValueX = 72;
+    const datosRightLabelX = 112;
+    const datosRightValueX = 145;
+    const datosLeftValueW = 34;
+    const datosRightValueW = 35;
+    const datosLineH = 4.4;
 
-    doc.setTextColor(...red);
-    doc.setFont("helvetica", "bold");
-    doc.text("Cliente:", datosLeftLabelX, infoY);
+    const limitarLineasPortada = (texto, ancho, maxLineas = 2) => {
+      const lineas = doc.splitTextToSize(String(texto || ""), ancho);
+      if (lineas.length <= maxLineas) return lineas;
 
-    doc.setTextColor(...NEGRO);
-    doc.setFont("helvetica", "normal");
-    doc.text(form.cliente || "Cliente", datosLeftValueX, infoY);
+      const recortadas = lineas.slice(0, maxLineas);
+      let ultima = recortadas[maxLineas - 1];
 
-    doc.setTextColor(...red);
-    doc.setFont("helvetica", "bold");
-    doc.text("Cotización N°:", datosRightLabelX, infoY);
+      while (ultima.length > 0 && doc.getTextWidth(`${ultima}...`) > ancho) {
+        ultima = ultima.slice(0, -1);
+      }
 
-    doc.setTextColor(...NEGRO);
-    doc.setFont("helvetica", "normal");
-    doc.text(cotizacionFinal, datosRightValueX, infoY);
+      recortadas[maxLineas - 1] = `${ultima}...`;
+      return recortadas;
+    };
 
-    infoY += 12;
-
-    if (form.atencion?.trim()) {
+    const dibujarDatoPortada = (label, value, labelX, valueX, yy, valueW, maxLineas = 2) => {
       doc.setTextColor(...red);
       doc.setFont("helvetica", "bold");
-      doc.text("Atención a:", datosLeftLabelX, infoY);
+      doc.text(label, labelX, yy);
 
       doc.setTextColor(...NEGRO);
       doc.setFont("helvetica", "normal");
-      doc.text(form.atencion, datosLeftValueX, infoY);
+      const lineas = limitarLineasPortada(value, valueW, maxLineas);
+      doc.text(lineas, valueX, yy);
 
-      infoY += 12;
+      return lineas.length;
+    };
+
+    const lineasCliente = dibujarDatoPortada(
+      "Cliente:",
+      form.cliente || "Cliente",
+      datosLeftLabelX,
+      datosLeftValueX,
+      infoY,
+      datosLeftValueW,
+      2
+    );
+
+    const lineasCotizacion = dibujarDatoPortada(
+      "Cotización N°:",
+      cotizacionFinal,
+      datosRightLabelX,
+      datosRightValueX,
+      infoY,
+      datosRightValueW,
+      1
+    );
+
+    infoY += Math.max(lineasCliente, lineasCotizacion) * datosLineH + 7;
+
+    if (form.atencion?.trim()) {
+      const lineasAtencion = dibujarDatoPortada(
+        "Atención a:",
+        form.atencion,
+        datosLeftLabelX,
+        datosLeftValueX,
+        infoY,
+        datosLeftValueW,
+        2
+      );
+
+      infoY += lineasAtencion * datosLineH + 7;
     }
 
-    doc.setTextColor(...red);
-    doc.setFont("helvetica", "bold");
-    doc.text("Ciudad:", datosLeftLabelX, infoY);
+    const lineasCiudad = dibujarDatoPortada(
+      "Ciudad:",
+      ciudadFinal || "Ciudad",
+      datosLeftLabelX,
+      datosLeftValueX,
+      infoY,
+      datosLeftValueW,
+      1
+    );
 
-    doc.setTextColor(...NEGRO);
-    doc.setFont("helvetica", "normal");
-    doc.text(ciudadFinal || "Ciudad", datosLeftValueX, infoY);
+    const lineasFecha = dibujarDatoPortada(
+      "Fecha:",
+      form.fecha,
+      datosRightLabelX,
+      datosRightValueX,
+      infoY,
+      datosRightValueW,
+      2
+    );
 
-    doc.setTextColor(...red);
-    doc.setFont("helvetica", "bold");
-    doc.text("Fecha:", datosRightLabelX, infoY);
-
-    doc.setTextColor(...NEGRO);
-    doc.setFont("helvetica", "normal");
-    doc.text(form.fecha, datosRightValueX, infoY);
+    infoY += Math.max(lineasCiudad, lineasFecha) * datosLineH;
 
 
     // BLOQUE INFERIOR DE PORTADA: TEXTO IZQUIERDA + FOTO DERECHA
@@ -415,7 +464,7 @@ export default function App() {
     // SALUDO
     let y = 56;
     doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(...NEGRO);
-    doc.text("Estimad@", margin, y);
+    doc.text("Estimado/a", margin, y);
     y += 6;
 
     if (form.atencion?.trim()) {
@@ -676,109 +725,6 @@ export default function App() {
         columnStyles: { 0: { cellWidth: 48, textColor: red }, 1: { cellWidth: 48, textColor: red } },
       });
       y = doc.lastAutoTable.finalY + 7;
-    }
-
-    // TABLAS ADICIONALES Y OPCIONALES
-    // Solo se muestran cuando TODOS los ascensores son del mismo modelo.
-    // Si se mezclan modelos, se ocultan para evitar confusión de precios.
-    const todosMismoModelo = ascensores.every(
-      (a) => a.modelo === ascensores[0].modelo
-    );
-
-    if (todosMismoModelo) {
-      const modeloRef = PRECIOS[ascensores[0].modelo];
-      const paradaRef = modeloRef.paradas[parseInt(ascensores[0].paradas)];
-      const ad = modeloRef.adicionales;
-      const op = modeloRef.opcionales;
-
-      const adicionales = [
-        ["Metro adicional de intermedio", fmt(ad.metroAdicional)],
-        ["Costo adicional color especial estructura", fmt(paradaRef.colorEstructura)],
-        ["Costo adicional de policarbonato cristal", fmt(paradaRef.policarbonatoCristal)],
-        ["Falso cabezal (cada 50cm)", fmt(ad.falsoCabezal)],
-        ["Bisagra izquierda", fmt(ad.bisagra)],
-      ];
-
-      const opcionales = [
-        ["Llavín de cabina (c/u)", fmt(op.llavin)],
-        ["Barandilla negra", fmt(op.barandillaNegra)],
-        ["Barandilla acero inox", fmt(op.barandillaInox)],
-        ["Barandilla color estructura", fmt(op.barandillaColorEstructura)],
-        ["Sillín rebatible", fmt(op.sillin)],
-        ["Cielo raso dibon espejado", fmt(op.cieloRaso)],
-        ["Moqueta", fmt(op.moqueta)],
-        ["Cierra puerta automática (c/u)", fmt(op.cierraPuerta)],
-        ["Rampa de chapa estándar", fmt(op.rampa)],
-        ["Cabezal silent", fmt(op.cabezalSilent)],
-      ];
-
-      y = nuevaPaginaSiHaceFalta(88, y);
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10.5);
-      doc.setTextColor(...red);
-      doc.text("Adicionales y accesorios", pageW / 2, y, { align: "center" });
-      y += 6;
-
-      autoTable(doc, {
-        startY: y,
-        margin: { left: 33 },
-        tableWidth: 70,
-        head: [
-          [{ content: `Adicionales (${modeloRef.nombre})`, colSpan: 2 }],
-          ["DESCRIPCIÓN", "VALOR (USD)"],
-        ],
-        body: adicionales,
-        theme: "grid",
-        styles: {
-          fontSize: 7.7,
-          cellPadding: 1.7,
-          lineColor: [170, 170, 170],
-          lineWidth: 0.25,
-          halign: "center",
-        },
-        headStyles: {
-          fillColor: red,
-          textColor: [255, 255, 255],
-          halign: "center",
-          fontStyle: "bold",
-        },
-        columnStyles: {
-          0: { cellWidth: 50, halign: "center" },
-          1: { cellWidth: 20, halign: "center" },
-        },
-      });
-
-      autoTable(doc, {
-        startY: y,
-        margin: { left: 106 },
-        tableWidth: 70,
-        head: [
-          [{ content: `Accesorios (${modeloRef.nombre})`, colSpan: 2 }],
-          ["DESCRIPCIÓN", "VALOR (USD)"],
-        ],
-        body: opcionales,
-        theme: "grid",
-        styles: {
-          fontSize: 7.7,
-          cellPadding: 1.7,
-          lineColor: [170, 170, 170],
-          lineWidth: 0.25,
-          halign: "center",
-        },
-        headStyles: {
-          fillColor: red,
-          textColor: [255, 255, 255],
-          halign: "center",
-          fontStyle: "bold",
-        },
-        columnStyles: {
-          0: { cellWidth: 50, halign: "center" },
-          1: { cellWidth: 20, halign: "center" },
-        },
-      });
-
-      y = Math.max(doc.lastAutoTable.finalY, y + 55) + 6;
     }
 
     // NOTAS Y CONDICIONES
@@ -1125,6 +1071,20 @@ export default function App() {
             </div>
             <p>Precio base: {fmt(parada.base)}</p>
 
+            <div style={{ marginTop: 10 }}>
+              <label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>
+                Cantidad de ascensores iguales
+              </label>
+              <input
+                style={{ width: "100%", padding: 8 }}
+                type="number"
+                min="1"
+                step="1"
+                value={a.cantidad || 1}
+                onChange={(e) => setAscensor(a.id, "cantidad", parseInt(e.target.value) || 1)}
+              />
+            </div>
+
             <div style={{ marginTop: 10, padding: 12, border: "1px solid #eee", borderRadius: 8, background: "#fafafa" }}>
               <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700 }}>
                 <input type="checkbox" checked={a.descuentoActivo || false} onChange={(e) => setAscensor(a.id, "descuentoActivo", e.target.checked)} />
@@ -1242,7 +1202,7 @@ export default function App() {
         </label>
 
         {form.instalacionGeneral && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div>
               <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Instalación y montaje ($)</label>
               <input
@@ -1253,16 +1213,7 @@ export default function App() {
               />
             </div>
             <div>
-              <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Pruebas y puesta en marcha ($)</label>
-              <input
-                type="number"
-                value={form.pruebasGeneral}
-                onChange={(e) => setCampo("pruebasGeneral", Number(e.target.value))}
-                style={{ width: "100%", padding: 10, boxSizing: "border-box" }}
-              />
-            </div>
-            <div>
-              <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Transporte a {ciudadFinal} ($)</label>
+              <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>Transporte de equipos ($)</label>
               <input
                 type="number"
                 placeholder={esCuenca ? "Ej: 0" : "Ej: 650"}
